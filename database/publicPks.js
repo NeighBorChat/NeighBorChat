@@ -7,7 +7,7 @@ export class HID {
 
 export class location {
     constructor() {
-        this.sever;
+        this.server;
         this.ID;
     }
 }
