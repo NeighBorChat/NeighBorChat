@@ -25,3 +25,7 @@ function SendMsg(){
 function GetMsg(){
     
 }
+
+function KeyCreator() {
+
+}
