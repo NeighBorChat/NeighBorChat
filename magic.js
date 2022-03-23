@@ -1,7 +1,6 @@
 // import {content} from './database/MsgPks.js';
 import './database/MsgPks.js';
 import './database/publicPks.js';
-import { location, locations } from './database/publicPks.js';
 // import 'https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js'
 // import 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
 
@@ -78,7 +77,6 @@ function StorePListOnDB(arr) {
         }
     };
 
-    console.log(arr)
     openRequest.onsuccess = function() {
         let db = openRequest.result
         const txn = db.transaction('PublicList', 'readwrite')
@@ -89,8 +87,21 @@ function StorePListOnDB(arr) {
     }
 }
 
+function getPListOnDB() {
+    openRequest.onsuccess = function() {
+        let db = openRequest.result
+        const txn = db.transaction('PublicList', 'readonly')
+        const store = txn.objectStore('PublicList')
+        let a = store.getAll()
+        a.onsuccess = function() {
+            console.log(a.result)
+            return a.result
+        }
+    }
+}
 
 let pl = await FetchPublicList()
 InitializeIndexDB()
 StorePListOnDB(pl)
-// StoreKeysOnDB([{type: "private key", value: JSON.stringify(prk)}, {type: "public key", value: JSON.stringify(puk)}])
+getPListOnDB()
+
