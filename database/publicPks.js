@@ -1,12 +1,12 @@
 export class HID {
-    constructor(name, image) {
+    constructor() {
         this.Name;
         this.Image;
     }
 }
 
 export class location {
-    constructor(server, ID) {
+    constructor() {
         this.server;
         this.ID;
     }
