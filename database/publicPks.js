@@ -1,24 +1,24 @@
-class HID {
+export class HID {
     constructor() {
         this.Name;
         this.Image;
     }
 }
 
-class location {
+export class location {
     constructor() {
-        this.sever;
+        this.server;
         this.ID;
     }
 }
 
-class locations {
+export class locations {
     constructor() {
         this.locations = [];
     }
 }
 
-class PublicListData {
+export class PublicListData {
     constructor() {
         this.HID = new HID();
         this.publicKey = "";
@@ -26,8 +26,9 @@ class PublicListData {
     }
 }
 
-class PublicList{
+export class PublicList{
     constructor() {
         this.PublicListData = [new PublicListData()];
     }
 }
+
