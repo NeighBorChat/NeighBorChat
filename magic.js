@@ -2,8 +2,10 @@
 import './database/MsgPks.js';
 import './database/publicPks.js';
 import { location, locations, PublicListData, HID } from './database/publicPks.js';
+
+//already import external
 // import 'https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js'
-// import 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
+// import 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js' 
 
 //PASSPHRASE cho C = "We are the friendly neighbor chat app." 
 
@@ -11,9 +13,83 @@ import { location, locations, PublicListData, HID } from './database/publicPks.j
     Run at startup
         1. check connection, update PL
 */
+var peer = null; // Own peer object
+
+function openConnect(){
+    var lastPeerId = null;
+    var peerId = null;
+    var conn = null;
+
+    //listen
+    // Create own peer object with connection to shared PeerJS server
+    peer = new Peer(null, {
+        debug: 2
+    });
+
+
+    peer.on('open', function(id) {
+
+        if (peer.id === null) {
+            console.log('Received null id from peer open');
+            peer.id = lastPeerId;
+        } else {
+            lastPeerId = peer.id;
+        }
+
+        console.log('My peer ID is: ' + id);
+        //update connection into PL
+    });
+
+    //if recive ms
+    peer.on('connection', function(conn) { 
+        conn.on('open', function() {
+            // Receive messages
+            conn.on('data', function(data) {
+                console.log('Received', data);
+            });
+            
+            // Send messages
+            conn.send('Hello!');
+        });
+    });
+    peer.on('disconnected', function () {
+        // status.innerHTML = "Connection lost. Please reconnect";
+        console.log('Connection lost. Please reconnect');
+
+        // Workaround for peer.reconnect deleting previous id
+        peer.id = lastPeerId;
+        peer._lastServerId = lastPeerId;
+        peer.reconnect();
+    });
+    peer.on('close', function() {
+        conn = null;
+        // status.innerHTML = "Connection destroyed. Please refresh";
+        console.log('Connection destroyed');
+    });
+    peer.on('error', function (err) {
+        console.log(err);
+        alert('' + err);
+    });
+}
+
+function connectTo(ID){
+    //try to connect to other
+    var conn = peer.connect(ID);
+    conn.on('open', function() {
+        // Receive messages
+        conn.on('data', function(data) {
+          console.log('Received', data);
+        });
+      
+        // Send messages
+        conn.send('Hello!');
+    });
+}
+
+openConnect();
+
 
 function Initialize(){
-
 }
 
 function NewMsg(){
@@ -44,7 +120,8 @@ function SignUp() {
     // let name = window.prompt("What is your name?")
     // let image = window.prompt("What is your image address?")
     // PASSPHRASE = window.prompt("What is your password?")
-    let name = "A"
+    // let name = "K"
+    let name = "C"
     let image = "..."
     PASSPHRASE = "I am A."
 
