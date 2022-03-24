@@ -13,7 +13,10 @@ import { location, locations, PublicListData, HID } from './database/publicPks.j
     Run at startup
         1. check connection, update PL
 */
-var peer = null; // Own peer object
+var peer = null // Own peer object
+let PASSPHRASE = "I am A." 
+const BITS = 1024
+let PRIVATE_KEY = null, PUBLIC_KEY = null
 
 function openConnect(){
     var lastPeerId = null;
@@ -22,13 +25,13 @@ function openConnect(){
 
     //listen
     // Create own peer object with connection to shared PeerJS server
-    peer = new Peer(null, {
-        debug: 2
-    });
+    peer = new Peer({host:'peerjs-server.herokuapp.com', secure:true, port:443});
+    // peer = new Peer(null, {
+    //     debug: 2
+    // });
 
 
     peer.on('open', function(id) {
-
         if (peer.id === null) {
             console.log('Received null id from peer open');
             peer.id = lastPeerId;
@@ -70,6 +73,8 @@ function openConnect(){
         console.log(err);
         alert('' + err);
     });
+
+    return peerId
 }
 
 function connectTo(ID){
@@ -86,11 +91,44 @@ function connectTo(ID){
     });
 }
 
-openConnect();
+async function Initialize(){
+    //Get id
+    peer = new Peer({host:'peerjs-server.herokuapp.com', secure:true, port:443});
 
+    let res = await peer.on('open', function(id) {
+        console.log('My peer ID is: ' + id);
+        return peer.id
 
-function Initialize(){
+        //update connection into PL
+    });
+
+    //Get key
+    PASSPHRASE = "I am A."
+    CreateKey()
+
+    //fetch from db
+    let publicList = await FetchPublicList()
+    console.log(publicList)
+
+    //create public list data
+    let pld = SignUp(res._id)
+    console.log(pld)
+
+    //if not exist, post
+    if (publicList.some(data => data.publicKey == PUBLIC_KEY)) {
+        publicList.forEach(data => {
+            if(data.publicKey == PUBLIC_KEY) {
+                data.locations.locations[0].id = res._id
+            }
+        })
+    } else {
+        publicList.push(pld)
+    }
+
+    PutPublicList(publicList)
 }
+
+Initialize()
 
 function NewMsg(){
     
@@ -105,9 +143,6 @@ function GetMsg(){
     
 }
 
-let PASSPHRASE = "I am A." 
-const BITS = 1024
-let PRIVATE_KEY = null, PUBLIC_KEY = null
 let openRequest = null
 
 
@@ -116,20 +151,17 @@ function CreateKey() {
     PUBLIC_KEY = cryptico.publicKeyString(PRIVATE_KEY)
 }
 
-function SignUp() {
+function SignUp(peerId) {
     // let name = window.prompt("What is your name?")
     // let image = window.prompt("What is your image address?")
     // PASSPHRASE = window.prompt("What is your password?")
     // let name = "K"
-    let name = "C"
+    let name = "A"
     let image = "..."
-    PASSPHRASE = "I am A."
-
-    CreateKey()
 
     let loc = new location()
     loc.server = "1"
-    loc.id = CreatePeerID()
+    loc.id = peerId
     let listLoc = new locations()
     listLoc.locations.push(loc)
 
@@ -142,26 +174,38 @@ function SignUp() {
     pld.HID = userHID
     pld.publicKey = PUBLIC_KEY
     pld.locations = listLoc
+    return pld
 
-    console.log(pld)
-    StorePListOnDB([pld])
+    // StorePListOnDB([pld])
 }
 
-function CreatePeerID() {
-    var peer = new Peer();
+// function CreatePeerID() {
+//     var peer = new Peer();
 
-    //peeriId is different each time we reload
-    peer.on('open', function(id) {
-        return id
-    });
-}
+//     //peeriId is different each time we reload
+//     peer.on('open', function(id) {
+//         return id
+//     });
+// }
 
 async function FetchPublicList() {
-    return await fetch('https://api.jsonbin.io/b/623a7ce006182767437d8969/3')
+    return await fetch('https://api.jsonbin.io/b/623a7ce006182767437d8969/10')
             .then(res => res.json())
             .then(json => json)
 }
 
+async function PutPublicList(obj) {
+    console.log(JSON.stringify(obj))
+    await fetch('https://api.jsonbin.io/b/623a7ce006182767437d8969', {
+        method: "PUT",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(obj)
+    })
+    .then(res => res.json())
+    .then(json => console.log(json))
+}
 
 function InitializeIndexDB() {
     indexedDB.deleteDatabase("store")
@@ -209,9 +253,9 @@ function getPListOnDB() {
 
 
 
-InitializeIndexDB()
-SignUp()
-let pl = await FetchPublicList()
-StorePListOnDB(pl)
+// InitializeIndexDB()
+// SignUp()
+// let pl = await FetchPublicList()
+// StorePListOnDB(pl)
 // console.log(getPListOnDB())
 
