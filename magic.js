@@ -130,6 +130,7 @@ async function Initialize(){
 
 Initialize()
 
+
 function NewMsg(){
     
 }
@@ -189,17 +190,22 @@ function SignUp(peerId) {
 // }
 
 async function FetchPublicList() {
-    return await fetch('https://api.jsonbin.io/b/623a7ce006182767437d8969/10')
+    return await fetch('https://api.jsonbin.io/b/623c3858a703bb6749338467', {
+        headers: {
+            "Secret-Key": "$2b$10$o.Hs.qsROg8p952fcfLrMudQL3LnXC2SknKWajjtnbeY2wazxGJea"
+        }
+    })
             .then(res => res.json())
             .then(json => json)
 }
 
 async function PutPublicList(obj) {
     console.log(JSON.stringify(obj))
-    await fetch('https://api.jsonbin.io/b/623a7ce006182767437d8969', {
+    await fetch('https://api.jsonbin.io/b/623c3858a703bb6749338467', {
         method: "PUT",
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            "Secret-Key": "$2b$10$o.Hs.qsROg8p952fcfLrMudQL3LnXC2SknKWajjtnbeY2wazxGJea",
         },
         body: JSON.stringify(obj)
     })
