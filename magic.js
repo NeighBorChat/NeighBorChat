@@ -1,6 +1,4 @@
-// import {content} from './database/MsgPks.js';
-import './database/MsgPks.js';
-import './database/publicPks.js';
+import {content, data, Msg} from './database/MsgPks.js';
 import { location, locations, PublicListData, HID } from './database/publicPks.js';
 
 //already import external
@@ -14,9 +12,19 @@ import { location, locations, PublicListData, HID } from './database/publicPks.j
         1. check connection, update PL
 */
 var peer = null // Own peer object
+const HOSTID = "abcabcabcabc" 
+const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443}]
+
+//default local password
 let PASSPHRASE = "I am A." 
-const BITS = 1024
-let PRIVATE_KEY = null, PUBLIC_KEY = null
+
+
+const BITS = 4096
+let PRIVATE_KEY = null
+let PUBLIC_KEY = null
+
+//should be load from db
+const PublicListDatabase = [];
 
 function openConnect(){
     var lastPeerId = null;
@@ -91,21 +99,142 @@ function connectTo(ID){
     });
 }
 
+
+
 async function Initialize(){
-    //Get id
-    peer = new Peer({host:'peerjs-server.herokuapp.com', secure:true, port:443});
+
+    /* TEMPORARY CREATE AN ACCOUNT */
+    //Get key
+    CreateKey();
+
+    /* chose one alive server */
+
+
+
+
+    /* get a random Adrr to start communicate */
+    peer = new Peer(hosts[0]);
 
     let res = await peer.on('open', function(id) {
-        console.log('My peer ID is: ' + id);
-        return peer.id
 
+        console.log('My peer ID is: ' + id);
+        
+        /* ping if there is any host */
+        var host_conn = peer.connect(ID);
+
+        await peer.on('error', function(err) { 
+            console.log(err.type)
+            if(err.type == 'peer-unavailable'){
+                /* server not exist -> set self as host */
+                peer = new Peer(HOSTID, hosts[0]);
+                await peer.on('open', function(id) {
+                    console.log('now Im the server' + id);
+                });
+            }
+        });
+
+        /* add or MODIFY self into list */
+        PublicListDatabase.push(SignUp());
+
+        
+        /* define EVERYTIME receive msg, act as a host*/
+        peer.on('connection', function(conn) {
+            /* 
+             //Authenticate                      HOST                                  vs                     PEER
+                1: Send self HostK key                                             =========>          1: wait for public key from client (no encrypt)  //init
+                2: decrypt (HostK) "a random msg"                                  <=========          2: encrypt  "a random msg" (hostK)           
+                   encrypt " a random msg " (PeerK)                                =========>             wait for "a random msg" and decrypt
+                3: wait for pld                                                    <=========          3: send pld
+                   add/edit PL, (send hold msg)                                    =========>
+                4: trust, msg mode
+                
+             
+                // if fail disconnect 
+            */
+            let process = 1;
+            let PublicListData;
+
+            /* on connection open*/ 
+            conn.on('open', function() {
+
+                /* EVERYTIME Receive messages */
+                conn.on('data', function(data) {
+                    if(process == 1){
+                        conn.send(PUBLIC_KEY);
+                        process = 2;
+                    }
+                    /* wait PubK from client*/
+                    if(process == 2){
+                        /* decript the msg */
+                        const msg = new Msg(data);
+                        
+                        msg.decript(PRIVATE_KEY); 
+
+                        msg.encript(msg.targetPublicKey); 
+
+                        conn.send(msg);
+                        process = 3;
+                        /*if sucess add pair to PublicListData*/
+                    }
+
+                    if(process == 3){
+                        // if this is other .. add into list ? or give the list ????
+                        const msg = new Msg(data);
+
+                        msg.decript(PRIVATE_KEY); 
+
+                        const pld = new PublicListData(msg.data.content.data);
+                        
+                        PublicListDatabase.push(pld);
+
+                        console.log('authenticate success', data);
+
+                        /* send all data from HoldMsg */
+
+                        process = 4;
+                    }
+                    
+                    /* process the msg */
+                    if(process == 4){
+                        const msg = new Msg(data);
+                    
+                        //if send to me then:
+
+                        // msg.decript(PRIVATE_KEY); 
+
+                        //if not => push to HoldMsg
+                    }
+
+
+
+                    console.log('Received', data);
+
+                });
+            
+                // Send messages
+                // conn.send('Hello!');
+
+            });
+
+            conn.on('close', function() {
+
+            });
+        });
+
+        
+        /* connect to other in PL */
+        PublicListData.forEach(element => {
+            
+        });
+
+        /* is not host -> request PL from other */
+        return peer.id;
         //update connection into PL
     });
 
-    //Get key
-    PASSPHRASE = "I am A."
-    CreateKey()
 
+
+    /*
     //fetch from db
     let publicList = await FetchPublicList()
     console.log(publicList)
@@ -126,6 +255,7 @@ async function Initialize(){
     }
 
     PutPublicList(publicList)
+    */
 }
 
 Initialize()
@@ -139,34 +269,33 @@ function SendMsg(){
     
 }
 
-//passive function
-function GetMsg(){
-    
-}
+
 
 let openRequest = null
 
 
 function CreateKey() {
+    //save into cache
     PRIVATE_KEY = cryptico.generateRSAKey(PASSPHRASE, BITS);
     PUBLIC_KEY = cryptico.publicKeyString(PRIVATE_KEY)
 }
 
-function SignUp(peerId) {
-    // let name = window.prompt("What is your name?")
+function SignUp() {
+    let name = window.prompt("What is your name?")
     // let image = window.prompt("What is your image address?")
     // PASSPHRASE = window.prompt("What is your password?")
     // let name = "K"
-    let name = "A"
+    // let name = "A"
     let image = "..."
 
-    let loc = new location()
-    loc.server = "1"
-    loc.id = peerId
-    let listLoc = new locations()
-    listLoc.locations.push(loc)
-
     let pld = new PublicListData()
+    let listLoc = new locations()
+
+    let loc = new location()
+    loc.server = hosts[0].host;
+    loc.id = peer.id;
+    listLoc.locations.push(loc)
+    
 
     let userHID = new HID()
     userHID.name = name
