@@ -5,14 +5,15 @@ export class HID {
     }
 }
 
-export class location {
+export class Location {
     constructor() {
         this.server;
         this.ID;
+        this.online = false;
     }
 }
 
-export class locations {
+export class Locations {
     constructor() {
         this.locations = [];
     }
@@ -22,13 +23,16 @@ export class PublicListData {
     constructor() {
         this.HID = new HID();
         this.publicKey = "";
-        this.locations = new locations();
+        this.locations = new Locations();
+    }
+    constructor(obj) {
+        obj && Object.assign(this, obj);
     }
 }
 
-export class PublicList{
-    constructor() {
-        this.PublicListData = [new PublicListData()];
-    }
-}
-
+// export class PublicList{
+//     constructor() {
+//         // this.PublicListData = [new PublicListData()];
+//         this.PublicListData = [];
+//     }
+// }

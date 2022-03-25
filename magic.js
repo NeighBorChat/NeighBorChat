@@ -1,5 +1,5 @@
-import {content, data, Msg} from './database/MsgPks.js';
-import { location, locations, PublicListData, HID } from './database/publicPks.js';
+import {contentType, content, data, Msg} from './database/MsgPks.js';
+import { Location, Locations, PublicListData, HID } from './database/publicPks.js';
 
 //already import external
 // import 'https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js'
@@ -12,8 +12,10 @@ import { location, locations, PublicListData, HID } from './database/publicPks.j
         1. check connection, update PL
 */
 var peer = null // Own peer object
-const HOSTID = "abcabcabcabc" 
+const HOST_ID = "abcabcabcabc" 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443}]
+const chosenHost = hosts[0];
+let MyPLD ;
 
 //default local password
 let PASSPHRASE = "I am A." 
@@ -23,83 +25,56 @@ const BITS = 4096
 let PRIVATE_KEY = null
 let PUBLIC_KEY = null
 
-//should be load from db
 const PublicListDatabase = [];
-
-function openConnect(){
-    var lastPeerId = null;
-    var peerId = null;
-    var conn = null;
-
-    //listen
-    // Create own peer object with connection to shared PeerJS server
-    peer = new Peer({host:'peerjs-server.herokuapp.com', secure:true, port:443});
-    // peer = new Peer(null, {
-    //     debug: 2
-    // });
+const holdingdata = [];
+const conns = [];
 
 
-    peer.on('open', function(id) {
-        if (peer.id === null) {
-            console.log('Received null id from peer open');
-            peer.id = lastPeerId;
-        } else {
-            lastPeerId = peer.id;
+
+function processMessenger(conn, data){
+    const msg = new Msg(data);
+
+    //if send to me then:
+    if(msg.targetPublicKey == PUBLIC_KEY)
+    {
+
+        msg.decrypt(PRIVATE_KEY); 
+
+        if(msg.data.type == contentType.PUBLIC_LIST_REQUEST){
+            console.log('sending PL', PublicListDatabase);
+            
+            let newMsg = new Msg()
+            newMsg.data.type = contentType.PUBLIC_LIST;
+            newMsg.data.content = PublicListDatabase;
+            newMsg.data.from = PUBLIC_KEY;
+            newMsg.data.to.push(msg.from);
+
+            newMsg.targetPublicKey = msg.from;
+
+            newMsg.encrypt(newMsg.targetPublicKey);
+
+            conn.send(newMsg)
         }
 
-        console.log('My peer ID is: ' + id);
-        //update connection into PL
-    });
+        if(msg.data.type == contentType.PUBLIC_LIST){
+            /* TODO: process (MERGE) the PL */
 
-    //if recive ms
-    peer.on('connection', function(conn) { 
-        conn.on('open', function() {
-            // Receive messages
-            conn.on('data', function(data) {
-                console.log('Received', data);
-            });
-            
-            // Send messages
-            conn.send('Hello!');
-        });
-    });
-    peer.on('disconnected', function () {
-        // status.innerHTML = "Connection lost. Please reconnect";
-        console.log('Connection lost. Please reconnect');
+            PublicListDatabase = msg.data.content; //this can go totally wrong
 
-        // Workaround for peer.reconnect deleting previous id
-        peer.id = lastPeerId;
-        peer._lastServerId = lastPeerId;
-        peer.reconnect();
-    });
-    peer.on('close', function() {
-        conn = null;
-        // status.innerHTML = "Connection destroyed. Please refresh";
-        console.log('Connection destroyed');
-    });
-    peer.on('error', function (err) {
-        console.log(err);
-        alert('' + err);
-    });
+            console.log('get PL', );
+        }
 
-    return peerId
+        /* if msg from user then  */
+        //TODO: PROCESS HERE
+        if(msg.data.type == contentType.MSG){
+            console.log('get msg', msg);
+        }
+
+    }
+    else {
+        holdingdata.push(msg);
+    }
 }
-
-function connectTo(ID){
-    //try to connect to other
-    var conn = peer.connect(ID);
-    conn.on('open', function() {
-        // Receive messages
-        conn.on('data', function(data) {
-          console.log('Received', data);
-        });
-      
-        // Send messages
-        conn.send('Hello!');
-    });
-}
-
-
 
 async function Initialize(){
 
@@ -110,129 +85,238 @@ async function Initialize(){
     /* chose one alive server */
 
 
-
-
     /* get a random Adrr to start communicate */
-    peer = new Peer(hosts[0]);
-
+    peer = new Peer(chosenHost);
+    
     let res = await peer.on('open', function(id) {
 
         console.log('My peer ID is: ' + id);
         
         /* ping if there is any host */
-        var host_conn = peer.connect(ID);
+        let host_conn = peer.connect(ID);
+        let host = false;
 
-        await peer.on('error', function(err) { 
+        await host_conn.on('error', function(err) { 
             console.log(err.type)
             if(err.type == 'peer-unavailable'){
                 /* server not exist -> set self as host */
-                peer = new Peer(HOSTID, hosts[0]);
+                peer = new Peer(HOST_ID, chosenHost);
                 await peer.on('open', function(id) {
                     console.log('now Im the server' + id);
+                    host = true;
                 });
             }
         });
 
         /* add or MODIFY self into list */
-        PublicListDatabase.push(SignUp());
+        //TODO: ADD DB into sys
+        MyPLD = SignUp();
+        PublicListDatabase.push(MyPLD);
+
+        //temporary add host ID, but not get PK of host yet
+        if(!host){
+            PublicListDatabase.push(hostID());
+        }
 
         
-        /* define EVERYTIME receive msg, act as a host*/
+        /* define EVERY TIME receive msg, act as a host*/
         peer.on('connection', function(conn) {
             /* 
              //Authenticate                      HOST                                  vs                     PEER
+                0: get connection                                                  <=========          0: connect to s.o
                 1: Send self HostK key                                             =========>          1: wait for public key from client (no encrypt)  //init
                 2: decrypt (HostK) "a random msg"                                  <=========          2: encrypt  "a random msg" (hostK)           
                    encrypt " a random msg " (PeerK)                                =========>             wait for "a random msg" and decrypt
-                3: wait for pld                                                    <=========          3: send pld
-                   add/edit PL, (send hold msg)                                    =========>
-                4: trust, msg mode
+                3: wait for pld                                                    <=========             send pld
+                   
+                4: trust, msg mode                                                                     3: msg mode
                 
-             
-                // if fail disconnect 
+                // if fail any => disconnect 
             */
-            let process = 1;
-            let PublicListData;
+            let TrustProcess = 1;
+            let publicListData;
 
             /* on connection open*/ 
             conn.on('open', function() {
-
-                /* EVERYTIME Receive messages */
+                if(TrustProcess == 1){
+                    console.log('send PUBLIC_KEY');
+                    conn.send(PUBLIC_KEY);
+                    TrustProcess = 2;
+                }
+                /* EVERY TIME Receive messages */
                 conn.on('data', function(data) {
-                    if(process == 1){
-                        conn.send(PUBLIC_KEY);
-                        process = 2;
-                    }
+
                     /* wait PubK from client*/
-                    if(process == 2){
-                        /* decript the msg */
+                    if(TrustProcess == 2){
+                        /* decrypt the msg */
                         const msg = new Msg(data);
                         
-                        msg.decript(PRIVATE_KEY); 
+                        console.log('get authenticate ',msg);
 
-                        msg.encript(msg.targetPublicKey); 
+                        msg.decrypt(PRIVATE_KEY); 
 
+                        console.log('decrypt ',msg);
+
+                        msg.encrypt(msg.targetPublicKey); 
+                        
                         conn.send(msg);
-                        process = 3;
-                        /*if sucess add pair to PublicListData*/
+                        TrustProcess = 3;
+                        /*if success add pair to PublicListData*/
                     }
 
-                    if(process == 3){
+                    if(TrustProcess == 3){
                         // if this is other .. add into list ? or give the list ????
                         const msg = new Msg(data);
-
-                        msg.decript(PRIVATE_KEY); 
-
-                        const pld = new PublicListData(msg.data.content.data);
                         
-                        PublicListDatabase.push(pld);
+                        msg.decrypt(PRIVATE_KEY); 
+                        
+                        publicListData = new PublicListData(msg.data.content);
+                        
+                        //TODO: if new guy ? add to 
+                        PublicListDatabase.push(publicListData);
+                        
+                        console.log('authenticate success', msg);
 
-                        console.log('authenticate success', data);
-
-                        /* send all data from HoldMsg */
-
-                        process = 4;
+                        TrustProcess = 4;
                     }
                     
                     /* process the msg */
-                    if(process == 4){
-                        const msg = new Msg(data);
+                    if(TrustProcess == 4){
+                        processMessenger(conn, data);
                     
-                        //if send to me then:
-
                         // msg.decript(PRIVATE_KEY); 
-
+                        
                         //if not => push to HoldMsg
                     }
 
-
-
-                    console.log('Received', data);
+                    // console.log('Received', data);
 
                 });
             
                 // Send messages
+
+                /* TODO: check send all data from HoldMsg */
+                if(TrustProcess == 4){
+                    for(let i = 0; i < holdingdata.length; i++){
+                        if(holdingdata[i].targetPublicKey == publicListData.publicKey){
+                            conn.send(holdingdata[i]);
+                            holdingdata.splice(i,1);
+                        }
+                    }
+
+                }
+
                 // conn.send('Hello!');
 
             });
 
             conn.on('close', function() {
-
+                if(TrustProcess == 4){
+                    console.log(conn.id, "offline")
+                }
+                else
+                    console.log('authenticate failed form', conn.id);
             });
         });
 
-        
-        /* connect to other in PL */
-        PublicListData.forEach(element => {
-            
-        });
 
         /* is not host -> request PL from other */
         return peer.id;
         //update connection into PL
     });
 
+    /* connect to other in PL */
+    PublicListDatabase.forEach(pld => {
+        if(pld.publicKey != PUBLIC_KEY){
 
+            const location = new Location();
+
+            for( let element of element.locations){
+                if(element.server == chosenHost.host){
+                    location = element;
+                    break;
+                }
+            };
+
+            const conn = peer.connect();
+
+            conn.on('error', function(err) { 
+                //connection dead
+                location.online = false;
+            });
+
+            await conn.on('open', function() {
+
+                let TrustProcess = 1;
+                let randomMsg = "jdsaklfaskdfjalkd" //should be random each time connect 
+
+                // Receive messages
+                conn.on('data', function(data) {
+                    console.log('Received', data);
+
+                    if(TrustProcess == 1){
+                        if(pld.publicKey = ''){
+                            pld.publicKey = data;
+                        }else{
+                            if(data != pld.publicKey){
+                                console.log("public key changed ! or wrong format", data);
+                                //TODO: what now ?, roll the PL to find the correct PK
+
+                            }
+                        }
+                        let newMsg = new Msg()
+                        newMsg.data.type = contentType.MSG;
+                        newMsg.data.content = randomMsg;
+                        newMsg.data.from = PUBLIC_KEY;
+                        newMsg.data.to.push(pld.publicKey);
+                        newMsg.targetPublicKey = pld.publicKey;
+                        
+                        newMsg.encrypt(newMsg.targetPublicKey);
+
+                        conn.send(newMsg);
+                        TrustProcess = 2;
+                    }
+
+                    if(TrustProcess == 2){
+                        const msg = new Msg(data);
+                        msg.decrypt(PRIVATE_KEY); 
+
+                        if(msg.data.content == randomMsg){
+                            console.log("connection established ");
+                            TrustProcess = 3;
+
+                            let newMsg = new Msg()
+                            newMsg.data.type = contentType.PUBLIC_LIST; //not check for this pl
+                            newMsg.data.content = MyPLD;
+                            newMsg.data.from = PUBLIC_KEY;
+                            newMsg.data.to.push(pld.publicKey);
+                            newMsg.targetPublicKey = pld.publicKey;
+                            
+                            newMsg.encrypt(newMsg.targetPublicKey);
+                            
+                            conn.send(newMsg);
+
+                        }else{
+                            console.log("what the ... server go wrong ");
+
+                        }
+                    }   
+
+                    if(TrustProcess == 3){
+                        /* process the msg */
+                        processMessenger(conn, data);
+
+                    }
+
+                    /* store the connected  */
+                    conns.push(conn);
+                    location.online = true;
+                });
+
+
+            });
+        }
+    });
 
     /*
     //fetch from db
@@ -265,8 +349,8 @@ function NewMsg(){
     
 }
 
-function SendMsg(){
-    
+function SendMsg(publickey){
+    /* TODO: loop though the PLD */
 }
 
 
@@ -280,6 +364,34 @@ function CreateKey() {
     PUBLIC_KEY = cryptico.publicKeyString(PRIVATE_KEY)
 }
 
+function hostID() {
+    let name = "Host"
+    // let image = window.prompt("What is your image address?")
+    // PASSPHRASE = window.prompt("What is your password?")
+    // let name = "K"
+    // let name = "A"
+    let image = "..."
+
+    let pld = new PublicListData()
+    let listLoc = new Locations()
+
+    let loc = new Location()
+    loc.server = hosts[0].host;
+    loc.id = HOST_ID;
+    loc.online = true;
+    listLoc.locations.push(loc)
+    
+
+    let userHID = new HID()
+    userHID.name = name
+    userHID.image = image
+
+    pld.HID = userHID
+    pld.publicKey = ""
+    pld.locations = listLoc
+    return pld
+}
+
 function SignUp() {
     let name = window.prompt("What is your name?")
     // let image = window.prompt("What is your image address?")
@@ -289,11 +401,12 @@ function SignUp() {
     let image = "..."
 
     let pld = new PublicListData()
-    let listLoc = new locations()
+    let listLoc = new Locations()
 
-    let loc = new location()
+    let loc = new Location()
     loc.server = hosts[0].host;
     loc.id = peer.id;
+    loc.online = true;
     listLoc.locations.push(loc)
     
 
