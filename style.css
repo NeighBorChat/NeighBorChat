@@ -1,0 +1,81 @@
+/* ::-webkit-scrollbar {
+    display: none;
+} */
+
+html, body {
+    height: 100%;
+}
+
+#contacts {
+    padding-top: 37px;
+    padding-bottom: 50px;
+    height: 100%;
+    overflow-y: scroll;
+}
+
+.contacts-top {
+    position: fixed;
+    top: 0;
+    width: 41.666667%;
+    padding-right: 2px;
+    z-index: 1;
+}
+
+.contacts-bot {
+    position: fixed;
+    bottom: 0;
+    width: 41.666667%;
+    padding-right: 2px;
+    height: 50px;
+    z-index: 1;
+}
+
+.contacts-bot i,
+.chat-bot i {
+    font-size: 25px;
+}
+
+#chat {
+    max-height: 100%;
+    overflow-y: scroll;
+    padding-top: 40px;
+    padding-bottom: 60px;
+}
+
+.chat-top {
+    height: 37px;
+    position: fixed;
+    z-index: 1;
+    width: 58.333333%;
+    top: 0;
+}
+
+.chat-bot {
+    height: 50px;
+    position: fixed;
+    z-index: 1;
+    width: 58.333333%;
+    bottom: 0;
+}
+
+.input-msg {
+    border: none;
+}
+
+.input-msg:focus {
+    outline: none;
+    border: none;
+    box-shadow: none;
+}
+
+@media (min-width: 992px) {
+    .contacts-top,
+    .contacts-bot {
+        width: 25%;
+    }
+
+    .chat-top,
+    .chat-bot {
+        width: 75%;
+    }
+}
