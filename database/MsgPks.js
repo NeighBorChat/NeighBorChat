@@ -26,14 +26,47 @@ export class Msg {
         this.targetPublicKey = ""; 
         this.data = new data(); //encripted data
     }
-    constructor(obj) {
+    create(obj) {
         obj && Object.assign(this, obj);
     }
     encrypt(key){
         /* encript the content */
+        this.data = cryptico.encrypt(JSON.stringify(this.data), key).cipher;
+        // let message =  this.data;
+        // let enc = new TextEncoder();
+        // let encoded = enc.encode(message);
+        // ciphertext = await window.crypto.subtle.encrypt(
+        //   {
+        //     name: "RSA-OAEP"
+        //   },
+        //   key,
+        //   encoded
+        // );
+    
+        // let buffer = new Uint8Array(ciphertext, 0, 5);
+        // this.data = buffer;
     }
     decrypt(PrvKey){
         /* decript the content */
+        // console.log('raw',this.data);
+        // console.log('decript with ', PrvKey);
+        let result = cryptico.decrypt(this.data, PrvKey); 
+        // console.log('decrypted',text);
+        if(result.status == 'failure'){
+            console.log("unable to decrypt msg");
+            return false;
+        }
+        this.data = JSON.parse(result.plaintext); 
+        // let decrypted = await window.crypto.subtle.decrypt(
+        //     {
+        //       name: "RSA-OAEP"
+        //     },
+        //     key,
+        //     ciphertext
+        //   );
+      
+        //   let dec = new TextDecoder();
+        //   this.data = dec.decode(decrypted);
     }
 }
 

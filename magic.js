@@ -1,5 +1,5 @@
-import {contentType, content, data, Msg} from './database/MsgPks.js';
-import { Location, Locations, PublicListData, HID } from './database/publicPks.js';
+import {contentType, Msg} from './database/MsgPks.js';
+import { Location, PublicListData, HID } from './database/publicPks.js';
 
 //already import external
 // import 'https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js'
@@ -12,27 +12,54 @@ import { Location, Locations, PublicListData, HID } from './database/publicPks.j
         1. check connection, update PL
 */
 var peer = null // Own peer object
-const HOST_ID = "abcabcabcabc" 
-const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443}]
-const chosenHost = hosts[0];
+const HOST_ID = "qm28y8eqqxeqm2t9" 
+const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
+               {host:'localhost', path:'/myapp', port:9000}]
+const chosenHost = hosts[1];
 let MyPLD ;
 
+
+function makeID(length) {
+    var result           = '';
+    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*() ';
+    var charactersLength = characters.length;
+
+    // self.crypto.getRandomValues(array);
+
+    for ( var i = 0; i < length; i++ ) {
+        //using math is not safe ❌❌❌❌❌❌❌
+      result += characters.charAt(Math.floor(Math.random() * 
+ charactersLength));
+        //
+   }
+   return result;
+}
+
+
+/* WARNING: SINCE THIS IS THE KEY TO GENERATE KEYs, the same passphrase will create the same pass */
 //default local password
-let PASSPHRASE = "I am A." 
+let PASSPHRASE = makeID(20);
 
+// please use 4096 in product !!!!
+// const BITS = 4096
+// 1024 is decrypt-able nowadays ❌❌❌❌❌❌❌
+const BITS = 1024
+var PRIVATE_KEY = null
+var PUBLIC_KEY = null
 
-const BITS = 4096
-let PRIVATE_KEY = null
-let PUBLIC_KEY = null
-
+//FRIEND LIST
 const PublicListDatabase = [];
-const holdingdata = [];
+//HOLD DATA LIST
+const holdingData = [];
+//DIRECT MSG LIST
 const conns = [];
 
 
 
 function processMessenger(conn, data){
-    const msg = new Msg(data);
+    const msg = new Msg();
+
+    msg.create(data);
 
     //if send to me then:
     if(msg.targetPublicKey == PUBLIC_KEY)
@@ -57,26 +84,45 @@ function processMessenger(conn, data){
         }
 
         if(msg.data.type == contentType.PUBLIC_LIST){
-            /* TODO: process (MERGE) the PL */
+            /* TODO: process, improve (MERGE) the PL */
 
-            PublicListDatabase = msg.data.content; //this can go totally wrong
+            
+            // PublicListDatabase = msg.data.content; //this can go totally wrong
+            
+            
+            // PublicListDatabase.forEach(pld1 => {
+            //     let newElement = true;
+            //     msg.data.content.forEach(pld2 => {
+            //         if(pld1.publicKey == pld2){
+            //             newElement = false
+            //         }
+            //         else
+            //             //???
+            //     });
+            // });
 
-            console.log('get PL', );
+            console.log('get PL', msg);
         }
 
         /* if msg from user then  */
         //TODO: PROCESS HERE
         if(msg.data.type == contentType.MSG){
+
+
+
+
+
             console.log('get msg', msg);
         }
 
     }
     else {
-        holdingdata.push(msg);
+        holdingData.push(msg);
     }
 }
 
-async function Initialize(){
+
+function Initialize(){
 
     /* TEMPORARY CREATE AN ACCOUNT */
     //Get key
@@ -84,273 +130,406 @@ async function Initialize(){
 
     /* chose one alive server */
 
+    console.log("created key");
 
-    /* get a random Adrr to start communicate */
-    peer = new Peer(chosenHost);
+    /* get a random Addr to start communicate ✔️ */
+
+    /* some time it took twice to startup ...  */
     
-    let res = await peer.on('open', function(id) {
-
-        console.log('My peer ID is: ' + id);
+    
+        peer = new Peer(chosenHost);
         
-        /* ping if there is any host */
-        let host_conn = peer.connect(ID);
-        let host = false;
+        //✔️
+        peer.on('open', function(id) {
 
-        await host_conn.on('error', function(err) { 
-            console.log(err.type)
-            if(err.type == 'peer-unavailable'){
-                /* server not exist -> set self as host */
-                peer = new Peer(HOST_ID, chosenHost);
-                await peer.on('open', function(id) {
-                    console.log('now Im the server' + id);
-                    host = true;
-                });
-            }
-        });
-
-        /* add or MODIFY self into list */
-        //TODO: ADD DB into sys
-        MyPLD = SignUp();
-        PublicListDatabase.push(MyPLD);
-
-        //temporary add host ID, but not get PK of host yet
-        if(!host){
-            PublicListDatabase.push(hostID());
-        }
-
-        
-        /* define EVERY TIME receive msg, act as a host*/
-        peer.on('connection', function(conn) {
-            /* 
-             //Authenticate                      HOST                                  vs                     PEER
-                0: get connection                                                  <=========          0: connect to s.o
-                1: Send self HostK key                                             =========>          1: wait for public key from client (no encrypt)  //init
-                2: decrypt (HostK) "a random msg"                                  <=========          2: encrypt  "a random msg" (hostK)           
-                   encrypt " a random msg " (PeerK)                                =========>             wait for "a random msg" and decrypt
-                3: wait for pld                                                    <=========             send pld
-                   
-                4: trust, msg mode                                                                     3: msg mode
-                
-                // if fail any => disconnect 
-            */
-            let TrustProcess = 1;
-            let publicListData;
-
-            /* on connection open*/ 
-            conn.on('open', function() {
-                if(TrustProcess == 1){
-                    console.log('send PUBLIC_KEY');
-                    conn.send(PUBLIC_KEY);
-                    TrustProcess = 2;
-                }
-                /* EVERY TIME Receive messages */
-                conn.on('data', function(data) {
-
-                    /* wait PubK from client*/
-                    if(TrustProcess == 2){
-                        /* decrypt the msg */
-                        const msg = new Msg(data);
-                        
-                        console.log('get authenticate ',msg);
-
-                        msg.decrypt(PRIVATE_KEY); 
-
-                        console.log('decrypt ',msg);
-
-                        msg.encrypt(msg.targetPublicKey); 
-                        
-                        conn.send(msg);
-                        TrustProcess = 3;
-                        /*if success add pair to PublicListData*/
-                    }
-
-                    if(TrustProcess == 3){
-                        // if this is other .. add into list ? or give the list ????
-                        const msg = new Msg(data);
-                        
-                        msg.decrypt(PRIVATE_KEY); 
-                        
-                        publicListData = new PublicListData(msg.data.content);
-                        
-                        //TODO: if new guy ? add to 
-                        PublicListDatabase.push(publicListData);
-                        
-                        console.log('authenticate success', msg);
-
-                        TrustProcess = 4;
-                    }
-                    
-                    /* process the msg */
-                    if(TrustProcess == 4){
-                        processMessenger(conn, data);
-                    
-                        // msg.decript(PRIVATE_KEY); 
-                        
-                        //if not => push to HoldMsg
-                    }
-
-                    // console.log('Received', data);
-
-                });
+            console.log('My peer ID is: ' + id);
             
-                // Send messages
-
-                /* TODO: check send all data from HoldMsg */
-                if(TrustProcess == 4){
-                    for(let i = 0; i < holdingdata.length; i++){
-                        if(holdingdata[i].targetPublicKey == publicListData.publicKey){
-                            conn.send(holdingdata[i]);
-                            holdingdata.splice(i,1);
-                        }
-                    }
-
-                }
-
-                // conn.send('Hello!');
-
+            /* ping if there is any host ✔️ */
+            var host_conn = peer.connect(HOST_ID, {
+                reliable: true
             });
+            console.log(host_conn);
 
-            conn.on('close', function() {
-                if(TrustProcess == 4){
-                    console.log(conn.id, "offline")
-                }
-                else
-                    console.log('authenticate failed form', conn.id);
-            });
-        });
-
-
-        /* is not host -> request PL from other */
-        return peer.id;
-        //update connection into PL
-    });
-
-    /* connect to other in PL */
-    PublicListDatabase.forEach(pld => {
-        if(pld.publicKey != PUBLIC_KEY){
-
-            const location = new Location();
-
-            for( let element of element.locations){
-                if(element.server == chosenHost.host){
-                    location = element;
-                    break;
-                }
-            };
-
-            const conn = peer.connect();
-
-            conn.on('error', function(err) { 
-                //connection dead
-                location.online = false;
-            });
-
-            await conn.on('open', function() {
-
-                let TrustProcess = 1;
-                let randomMsg = "jdsaklfaskdfjalkd" //should be random each time connect 
-
-                // Receive messages
-                conn.on('data', function(data) {
-                    console.log('Received', data);
-
-                    if(TrustProcess == 1){
-                        if(pld.publicKey = ''){
-                            pld.publicKey = data;
-                        }else{
-                            if(data != pld.publicKey){
-                                console.log("public key changed ! or wrong format", data);
-                                //TODO: what now ?, roll the PL to find the correct PK
-
-                            }
-                        }
-                        let newMsg = new Msg()
-                        newMsg.data.type = contentType.MSG;
-                        newMsg.data.content = randomMsg;
-                        newMsg.data.from = PUBLIC_KEY;
-                        newMsg.data.to.push(pld.publicKey);
-                        newMsg.targetPublicKey = pld.publicKey;
-                        
-                        newMsg.encrypt(newMsg.targetPublicKey);
-
-                        conn.send(newMsg);
-                        TrustProcess = 2;
-                    }
-
-                    if(TrustProcess == 2){
-                        const msg = new Msg(data);
-                        msg.decrypt(PRIVATE_KEY); 
-
-                        if(msg.data.content == randomMsg){
-                            console.log("connection established ");
-                            TrustProcess = 3;
-
-                            let newMsg = new Msg()
-                            newMsg.data.type = contentType.PUBLIC_LIST; //not check for this pl
-                            newMsg.data.content = MyPLD;
-                            newMsg.data.from = PUBLIC_KEY;
-                            newMsg.data.to.push(pld.publicKey);
-                            newMsg.targetPublicKey = pld.publicKey;
-                            
-                            newMsg.encrypt(newMsg.targetPublicKey);
-                            
-                            conn.send(newMsg);
-
-                        }else{
-                            console.log("what the ... server go wrong ");
-
-                        }
-                    }   
-
-                    if(TrustProcess == 3){
-                        /* process the msg */
-                        processMessenger(conn, data);
-
-                    }
-
-                    /* store the connected  */
-                    conns.push(conn);
-                    location.online = true;
+            host_conn.on('open', function(){
+                // ✔️
+                console.log("host existed");
+                //✔️ TODO: timeout this .. in case server not correct type
+                host_conn.on('data', function (data) {
+                    console.log("receive from server: ", data);
+                    host_conn.close();
+                    processConnection(false);
                 });
-
-
             });
-        }
-    });
 
-    /*
-    //fetch from db
-    let publicList = await FetchPublicList()
-    console.log(publicList)
 
-    //create public list data
-    let pld = SignUp(res._id)
-    console.log(pld)
 
-    //if not exist, post
-    if (publicList.some(data => data.publicKey == PUBLIC_KEY)) {
-        publicList.forEach(data => {
-            if(data.publicKey == PUBLIC_KEY) {
-                data.locations.locations[0].id = res._id
-            }
-        })
-    } else {
-        publicList.push(pld)
+            /* DAMN: if conn not work -> peer get error instead*/
+            peer.on('error', function(err) { 
+                console.log(err.type)
+                if(err.type == 'peer-unavailable'){
+                    /* server not exist -> set self as host */
+                    peer = new Peer(HOST_ID, chosenHost);
+                    peer.on('open', function(id) {
+                        console.log('now Im the server: ' + id);
+                        processConnection(true);
+                    });
+                }
+            });
+
+        });
+            
+    
+}
+function processConnection(host){
+
+    /* add or MODIFY self into list */
+    //TODO: ADD DB into sys
+    MyPLD = SignUp();
+    PublicListDatabase.push(MyPLD);
+
+    //temporary add host ID, but not get PK of host yet
+    if(!host){
+        PublicListDatabase.push(hostID());
     }
 
-    PutPublicList(publicList)
-    */
+    /* define EVERY TIME receive msg, act as a host ✔️ */
+    peer.on('connection', function(conn) {
+        /* 
+         //Authenticate                      HOST                                  vs                     PEER
+            0: get connection                                                  <=========          0: connect to s.o
+            1: Send self HostK key                                             =========>          1: wait for public key from client (no encrypt)  //init
+            2: decrypt (HostK) "a random msg"                                  <=========          2: encrypt  "a random msg" (hostK)           
+               encrypt " a random msg " (PeerK)                                =========>             wait for "a random msg" and decrypt
+            3: wait for pld                                                    <=========             send pld
+               
+            4: trust, msg mode                                                                     3: msg mode
+            
+            // if fail any => disconnect 
+        */
+        let TrustProcess = 1;
+        let publicListData;
+
+        /* on connection open*/ 
+        conn.on('open', function() {
+            if(TrustProcess == 1){
+                console.log('send PUBLIC_KEY');
+                setTimeout(conn.send(PUBLIC_KEY),100);
+                TrustProcess = 2;
+            }
+            /* EVERY TIME Receive messages */
+            conn.on('data', function(data) {
+
+                /* wait PubK from client*/
+                if(TrustProcess == 2){
+                    /* decrypt the msg */
+                    const msg = new Msg();
+
+                    // console.log('receive',data);
+
+                    msg.create(data);
+                    
+                    console.log('get authenticate ',msg);
+
+                    msg.decrypt(PRIVATE_KEY); 
+
+                    console.log('decrypt ',msg);
+
+
+                    msg.targetPublicKey = msg.data.from;
+                    msg.data.to = [];
+                    msg.data.to.push(msg.data.from);
+
+                    msg.data.from = PUBLIC_KEY;
+                    
+                    
+                    msg.encrypt(msg.targetPublicKey); 
+                    
+                    console.log('sending ',msg);
+                    conn.send(msg);
+                    TrustProcess = 3;
+                    /*if success add pair to PublicListData*/
+                    return;
+                }
+
+                if(TrustProcess == 3){
+                    // if this is other .. add into list ? or give the list ????
+                    const msg = new Msg();
+                
+                    msg.create(data);
+                    
+                    msg.decrypt(PRIVATE_KEY); 
+                    
+                    //TODO: check content
+
+                    publicListData = new PublicListData();
+
+                    publicListData.create(msg.data.content);
+
+                    // this is for the loop over conn to send direct msg
+                    publicListData.locations.forEach(location => {
+                        if(location.server.host == chosenHost.host){
+                            location.id = conn.peer;
+                        }
+                    });
+                    // publicListData.locations[0].id = conn.peer; 
+                    
+                    //TODO: if new guy ? add to 
+                    PublicListDatabase.push(publicListData);
+                    
+                    console.log('authenticate success', msg);
+                    console.log("added friend to DB", PublicListDatabase);
+                    TrustProcess = 4;
+                    
+                    /* add conn to conns list  */
+                    conns.push(conn);
+
+                    /*  check send all data from HoldMsg */
+                    for(let i = 0; i < holdingData.length; i++){
+                        if(holdingData[i].targetPublicKey == publicListData.publicKey){
+                            conn.send(holdingData[i]);
+                            holdingData.splice(i,1);
+                        }
+                    }
+
+
+                    // send a test msg
+                    SendMsg(msg.data.from,"this is a secrete hello !")
+
+
+                    return;
+                }
+                
+                /* process the msg */
+                if(TrustProcess == 4){
+                    processMessenger(conn, data);
+                    return;
+                }
+            });
+
+        });
+
+        /* on close TODO: mark PLD as offline*/ 
+        conn.on('close', function() {
+            if(TrustProcess == 4){
+                console.log(conn.peer, "offline")
+                //TODO: remove from list;
+            }
+            else
+                console.log('authenticate failed form', conn.peer);
+        });
+
+
+    });
+
+    console.log("setup for host role complete");
+
+    /* is not host -> request PL from other */
+    //return peer.id;
+    //update connection into PL
+
+    setTimeout(function(){
+        /* connect to other in PL */
+        console.log(PublicListDatabase);
+        PublicListDatabase.forEach(pld => {
+            if(pld.publicKey != PUBLIC_KEY){
+                console.log("connecting to ", pld);
+
+
+                // const location = new Location();
+                const location = pld.locations[0];
+                
+
+                // for(let element of pld.locations){
+                //     console.log(element);
+                //     if(element.server == chosenHost.host){
+                //         location = element;
+                //         break;
+                //     }
+                // }; 
+
+                            /* test code
+            var subPeer = new Peer({host:'localhost', path:'/myapp', port:9000});
+            subPeer.on('open',function(id){
+                console.log(id);
+                
+                var conn = subPeer.connect('qm28y8eqqxeqm2t9');
+                conn.on('open', function() {
+                    conn.on('data', function(data) {
+                        console.log('Received', data);
+                    });
+                    conn.send('Hello!');
+                });
+            });
+
+            
+            */
+           //need twice to startup 
+                // for(let i = 0; i < 1; ++i){
+                    //TODO: check if need subPeer to send to other host
+                    var subPeer = new Peer(chosenHost);
+                    // var subPeer = peer;
+
+                    var TrustProcess = 1;
+                    var randomMsg = "a random message" //should be random each time connect 
+                    
+                    subPeer.on('open',function(id){
+
+                        // ✔️ alway work
+                        console.log('client id', id);
+
+                        //✔️
+                        console.log("connecting to ", location.id);
+
+                        var Ninon = subPeer.connect(location.id);
+
+                        // ✔️
+                        Ninon.on('open', function() {
+                            console.log('gate open');
+                        // Receive messages
+                        Ninon.on('data', function(data) {
+
+                            if(TrustProcess == 1){
+                                console.log('Received PK', data);
+
+                                if(pld.publicKey == ""){
+                                    pld.publicKey = data;
+                                }else{
+                                    if(data != pld.publicKey){
+                                        console.log("public key changed ! or wrong format", data);
+                                        //TODO: what now ?, roll the PL to find the correct PK
+                                    }
+                                }
+                                let newMsg = new Msg();
+                                newMsg.data.type = contentType.MSG;
+                                newMsg.data.content = randomMsg;
+                                newMsg.data.from = PUBLIC_KEY;
+                                newMsg.data.to.push(pld.publicKey);
+                                newMsg.targetPublicKey = pld.publicKey;
+                                
+                                newMsg.encrypt(newMsg.targetPublicKey);
+                                console.log('sending', newMsg);
+                                //✔️
+                                Ninon.send(newMsg);
+                                TrustProcess = 2;
+                                return;
+                            }
+
+                            if(TrustProcess == 2){
+                                const msg = new Msg();
+                                
+                                msg.create(data);
+
+                                // ✔️
+                                console.log('get raw ',msg);
+
+                                msg.decrypt(PRIVATE_KEY); 
+
+                                if(msg.data.content == randomMsg){
+                                    TrustProcess = 3;
+                                    
+                                    let newMsg = new Msg()
+                                    newMsg.data.type = contentType.PUBLIC_LIST; //not check for this pl
+                                    newMsg.data.content = MyPLD;
+                                    newMsg.data.from = PUBLIC_KEY;
+                                    newMsg.data.to.push(pld.publicKey);
+                                    newMsg.targetPublicKey = pld.publicKey;
+
+                                    // console.log("connection established ");
+                                    // console.log("PUBLIC_KEY",PUBLIC_KEY);
+                                    // console.log("pld.publicKey",pld.publicKey);
+                                    // console.log("MyPLD",MyPLD);
+                                    console.log("connection established ");
+                                    // console.log("connection established ", newMsg);
+                                    newMsg.encrypt(newMsg.targetPublicKey);
+                                    
+                                    Ninon.send(newMsg);     
+                                    
+                                    /* store the connected  */
+                                    conns.push(Ninon);
+                                    location.online = true;
+
+                                }else{
+                                    console.log("what the ... server go wrong ");
+                                }
+                                return;
+                            }   
+
+                            if(TrustProcess == 3){
+                                /* process the msg */
+                                processMessenger(Ninon, data);
+                                return;
+                            }
+
+
+                        });
+                        });
+                        
+
+
+                        Ninon.on('close', function () {
+                            console.log("Connection closed");
+                        });
+
+
+                    });
+
+                    subPeer.on('error', function(err) { 
+                        //connection dead
+                        console.log(location.ID, "dead");
+                        location.online = false;
+                    });
+                }
+            // }
+        });
+    },1000);
 }
 
-Initialize()
+setTimeout(function(){
+    Initialize();
+},Math.random()*100);
 
 
-function NewMsg(){
+function SendMsg(TargetPublicKey,msg){
+// function SendMsg(publickeyS,msg){
+
+    /* TODO: loop through Keys and send msg */
+    let newMsg = new Msg();
+    newMsg.data.type = contentType.MSG;
+    newMsg.data.content = msg;
+    newMsg.data.from = PUBLIC_KEY;
+    newMsg.data.to.push(TargetPublicKey);
+    newMsg.targetPublicKey = TargetPublicKey;
     
-}
+    newMsg.encrypt(newMsg.targetPublicKey);
 
-function SendMsg(publickey){
-    /* TODO: loop though the PLD */
+    /*  loop though the PLD */
+    let connID;
+    PublicListDatabase.forEach(pld => {
+        if(pld.publicKey == TargetPublicKey)
+            console.log("found target");
+            pld.locations.forEach(location => {
+                console.log("finding id", location);
+                if(location.server.host == chosenHost.host){
+                    connID = location.id;
+                }
+            });
+    });
+
+    console.log(conns,connID);
+
+    conns.forEach(conn => {
+        if(conn.peer == connID){
+            conn.send(newMsg);
+            console.log("msg sended", newMsg);
+            return true;
+        }
+    });
+    console.log("fail to send msg, probably no direct connect", newMsg);
+
+    return false;
+
+    /* TODO: send to neighbors  */
+
 }
 
 
@@ -359,9 +538,25 @@ let openRequest = null
 
 
 function CreateKey() {
-    //save into cache
+    //TODO: save into cache
+    //NOTE: this took a lot of time
     PRIVATE_KEY = cryptico.generateRSAKey(PASSPHRASE, BITS);
-    PUBLIC_KEY = cryptico.publicKeyString(PRIVATE_KEY)
+    PUBLIC_KEY = cryptico.publicKeyString(PRIVATE_KEY);
+
+    // window.crypto.subtle.generateKey(
+    // {
+    //     name: "RSA-OAEP",
+    //     modulusLength: 4096,
+    //     publicExponent: new Uint8Array([1, 0, 1]),
+    //     hash: "SHA-256"
+    // },
+    // true,
+    // ["encrypt", "decrypt"]
+    // ).then((keyPair) => {
+
+    // PRIVATE_KEY = keyPair.privateKey;
+    // PUBLIC_KEY = keyPair.publicKey
+    // });
 }
 
 function hostID() {
@@ -373,13 +568,11 @@ function hostID() {
     let image = "..."
 
     let pld = new PublicListData()
-    let listLoc = new Locations()
 
     let loc = new Location()
-    loc.server = hosts[0].host;
+    loc.server = chosenHost;
     loc.id = HOST_ID;
     loc.online = true;
-    listLoc.locations.push(loc)
     
 
     let userHID = new HID()
@@ -387,8 +580,9 @@ function hostID() {
     userHID.image = image
 
     pld.HID = userHID
-    pld.publicKey = ""
-    pld.locations = listLoc
+    pld.publicKey = ""    
+    pld.locations.push(loc)
+
     return pld
 }
 
@@ -401,13 +595,12 @@ function SignUp() {
     let image = "..."
 
     let pld = new PublicListData()
-    let listLoc = new Locations()
 
     let loc = new Location()
-    loc.server = hosts[0].host;
-    loc.id = peer.id;
+    loc.server = chosenHost;
+    loc.id = peer._id;
     loc.online = true;
-    listLoc.locations.push(loc)
+    
     
 
     let userHID = new HID()
@@ -416,7 +609,7 @@ function SignUp() {
 
     pld.HID = userHID
     pld.publicKey = PUBLIC_KEY
-    pld.locations = listLoc
+    pld.locations.push(loc)
     return pld
 
     // StorePListOnDB([pld])
