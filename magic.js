@@ -456,7 +456,7 @@ function processConnection(host){
                     }
                     // send a text msg
                     SendMsg(msg.data.from,"this is a secrete hello !")
-                    // requestAddressBook();
+                    requestAddressBook();
 
                     return;
                 }
@@ -499,33 +499,33 @@ setTimeout(function(){
 },Math.random()*100);
 
 //ask everyone to give new addr
-// export function requestAddressBook(){
+export function requestAddressBook(){
 
-//     let newMsg = new Msg();
-//     newMsg.data.type = contentType.MSG;
-//     newMsg.data.content = msg;
-//     newMsg.data.from = PUBLIC_KEY;
-//     let connID;
-//     PublicListDatabase.forEach(pld => {
+    let newMsg = new Msg();
+    newMsg.data.type = contentType.MSG;
+    newMsg.data.content = msg;
+    newMsg.data.from = PUBLIC_KEY;
+    let connID;
+    PublicListDatabase.forEach(pld => {
         
-//         pld.locations.forEach(location => {
-//             if(location.server.host == chosenHost.host){
-//                 connID = location.id;
-//             }
-//         });
+        pld.locations.forEach(location => {
+            if(location.server.host == chosenHost.host){
+                connID = location.id;
+            }
+        });
 
-//         newMsg.data.to.push(pld.publicKey);
-//         newMsg.targetPublicKey = pld.publicKey;
-//         newMsg.encrypt(newMsg.targetPublicKey);
+        newMsg.data.to.push(pld.publicKey);
+        newMsg.targetPublicKey = pld.publicKey;
+        newMsg.encrypt(newMsg.targetPublicKey);
 
-//         conns.forEach(conn => {
-//             if(conn.peer == connID){
-//                 conn.send(newMsg)
-//                 console.log("Address request sended to", newMsg);
-//             }
-//         });
-//     });
-// }
+        conns.forEach(conn => {
+            if(conn.peer == connID){
+                conn.send(newMsg)
+                console.log("Address request sended to", newMsg);
+            }
+        });
+    });
+}
 
 export function SendMsg(TargetPublicKey,msg,direct = true){
 // function SendMsg(publickeyS,msg){
@@ -780,9 +780,11 @@ function createNewChat(msg, isSender) {
     let chat = new Chat()
 
     if(isSender) {
+        console.log('msg.targetPublicKey',msg.targetPublicKey)
         chat.PKs = msg.targetPublicKey
         premsg.from = PUBLIC_KEY
     } else {
+        console.log('msg.data.from',msg.data.from)
         chat.PKs = msg.data.from
         premsg.from = msg.data.from
     }
@@ -824,6 +826,7 @@ function addMyContactsToUi() {
 }
 
 function loadMsg(pk) {
+    
     let output = ''
     let chat = MyContacts.filter(c => c.PKs = pk)[0]
     chat.Msgs.forEach(msg => {
