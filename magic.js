@@ -39,7 +39,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[1];
+const chosenHost = hosts[0];
 
 
 
@@ -617,21 +617,21 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
         console.log(conns,connID);
         
         /*process sended message, add to MyContacts arr*/
-        if(MyContacts.some(c => {
-            return c.PKs == TargetPublicKey
-        })) {
-            pushMsg(newMsg, true)
-            
-        } else {
-            createNewChat(newMsg, true)
-
-        }
-
-        newMsg.encrypt(newMsg.targetPublicKey);
         
+
         let fixUnexpectedErr = true;
         conns.forEach(conn => {
             if(conn.peer == connID){
+
+                if(MyContacts.some(c => {
+                    return c.PKs == TargetPublicKey
+                })) {
+                    pushMsg(newMsg, true)
+                } else {
+                    createNewChat(newMsg, true)
+                }
+                newMsg.encrypt(newMsg.targetPublicKey);
+
                 conn.send(newMsg);
                 console.log("msg sended", newMsg);
                 fixUnexpectedErr = false;
