@@ -39,7 +39,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[0];
+const chosenHost = hosts[1];
 
 
 
@@ -335,7 +335,7 @@ function connectToOther(){
                                 /* store the connected */
                                 conns.push(conn);
                                 location.online = true;
-                                SendMsg(msg.data.from,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
+
                                 // requestAddressBook();
                             }else{
                                 console.log("what the ... server go wrong ");
@@ -476,27 +476,26 @@ function processConnection(host){
                     
                     /* check if this addr is for sending  */
                     let Reconnect = true;
-                    publicListData.locations.forEach(location => {
-                        if(location.server.host == chosenHost.host){
-                            if(location.id == conn.peer)
-                            {
-                                //TODO: THIS NEVER WORK
-                                Reconnect = false;
-                                /* add conn to conns list  */
-                                // conns.push(conn);
-                                console.log("connected to",conn.peer)
+                    // publicListData.locations.forEach(location => {
+                    //     if(location.server.host == chosenHost.host){
+                    //         if(location.id == conn.peer)
+                    //         {
+                    //             //TODO: THIS NEVER WORK
+                    //             Reconnect = false;
+                    //             /* add conn to conns list  */
+                    //             // conns.push(conn);
+                    //             console.log("connected to",conn.peer)
                                 
-                            };
-                        }
-                    });
+                    //         };
+                    //     }
+                    // });
                     
-                    if(Reconnect){
-                        console.log("now I will connect back ");
-                        connectToOther();
-                        return;
-                    }
+                    // if(Reconnect){
+                    console.log("now I will connect back ");
+                    // return;
+                    // }
 
-
+                    
                     /*  check send all DATA from HoldMsg */
                     for(let i = 0; i < holdingData.length; i++){
                         if(holdingData[i].targetPublicKey == publicListData.publicKey){
@@ -507,7 +506,9 @@ function processConnection(host){
                     // send a text msg
                     // 
                     // requestAddressBook();
-
+                    
+                    connectToOther();
+                    SendMsg(publicListData.publicKey,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
                     return;
                 }
                 
@@ -584,9 +585,6 @@ export function requestAddressBook(){
 }
 
 export function SendMsg(TargetPublicKey,msg,direct = true){
-    //
-    
-// function SendMsg(publickeyS,msg){
     if(typeof TargetPublicKey == 'undefined') {
         return
     }
