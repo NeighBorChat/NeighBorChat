@@ -21,6 +21,10 @@ function makeID(length) {
 }
 
 /****************************** CONSTANT **************************************/
+// var db = new PouchDB('system');
+// db.info().then(function (info) {
+//     console.log(JSON.stringify(info));
+// });
 
 const WAIT_TIME = 5000;
 
@@ -52,7 +56,7 @@ var PRIVATE_KEY = null
 var PUBLIC_KEY = null
 let MyPLD;
 //Address Book 
-const PublicListDatabase = [];
+export const PublicListDatabase = [];
 //HOLD DATA LIST
 const holdingData = [];
 
@@ -62,6 +66,8 @@ const holdingData = [];
 const conns = [];
 var peer = null // Own peer object
 
+//set this function to call every time receive new msg
+export var msgGetCallBackFnc = null;
 
 function processMessenger(conn, data){
     const msg = new Msg();
@@ -91,34 +97,29 @@ function processMessenger(conn, data){
         }
 
         if(msg.data.type == contentType.PUBLIC_LIST){
-            /* TODO: process, improve (MERGE) the PL */
+            
+            let newPublicListDatabase = msg.data.content; 
 
-            
-            // PublicListDatabase = msg.data.content; //this can go totally wrong
-            
-            
-            // PublicListDatabase.forEach(pld1 => {
-            //     let newElement = true;
-            //     msg.data.content.forEach(pld2 => {
-            //         if(pld1.publicKey == pld2){
-            //             newElement = false
-            //         }
-            //         else
-            //             //???
-            //     });
-            // });
+            newPublicListDatabase.forEach(pld2 => {
+                // TODO: test this ?
+                const pld1 = PublicListDatabase.find(element => element.publicKey == pld2.publicKey)
+                if(typeof(pld1) != 'undefined'){
+                    //update the new input with new addr
+                    pld1.HID = pld2.HID;
+                    pld1.locations = pld2.locations;
+                }
+                else
+                    PublicListDatabase.push(pld2);
+            });
 
-            console.log('get PL', msg);
+
+            console.log('get PL', newPublicListDatabase);
         }
 
         /* if msg from user then  */
         //TODO: PROCESS HERE
         if(msg.data.type == contentType.MSG){
-
-
-
-
-
+            msgGetCallBackFnc(msg);
             console.log('get msg', msg);
         }
 
@@ -192,6 +193,7 @@ function Initialize(){
             
     
 }
+
 function processConnection(host){
 
     /* add or MODIFY self into list */
@@ -302,11 +304,9 @@ function processConnection(host){
                             holdingData.splice(i,1);
                         }
                     }
-
-
                     // send a text msg
-                    SendMsg(msg.data.from,"this is a secrete hello !")
-
+                    // SendMsg(msg.data.from,"this is a secrete hello !")
+                    requestAddressBook();
 
                     return;
                 }
@@ -335,7 +335,7 @@ function processConnection(host){
 
     console.log("setup for host role complete");
 
-    /* is not host -> request PL from other */
+    /****** is not host -> request PL from other ********/
     //return peer.id;
     //update connection into PL
 
@@ -362,8 +362,7 @@ function processConnection(host){
 
                 //TODO: check if need subPeer to send to other host
                 var subPeer = new Peer(chosenHost);
-                // var subPeer = peer;
-
+                
                 var TrustProcess = 1;
                 var randomMsg = makeID(30);
                 
@@ -375,13 +374,13 @@ function processConnection(host){
                     //✔️
                     console.log("connecting to ", location.id);
 
-                    var Ninon = subPeer.connect(location.id);
+                    var conn = subPeer.connect(location.id);
 
                     // ✔️
-                    Ninon.on('open', function() {
+                    conn.on('open', function() {
                         console.log('gate open');
                     // Receive messages
-                    Ninon.on('data', function(data) {
+                    conn.on('data', function(data) {
 
                         if(TrustProcess == 1){
                             console.log('Received PK', data);
@@ -404,7 +403,7 @@ function processConnection(host){
                             newMsg.encrypt(newMsg.targetPublicKey);
                             console.log('sending', newMsg);
                             //✔️
-                            Ninon.send(newMsg);
+                            conn.send(newMsg);
                             TrustProcess = 2;
                             return;
                         }
@@ -437,28 +436,29 @@ function processConnection(host){
                                 // console.log("connection established ", newMsg);
                                 newMsg.encrypt(newMsg.targetPublicKey);
                                 
-                                Ninon.send(newMsg);     
+                                conn.send(newMsg);     
                                 
                                 /* store the connected */
-                                conns.push(Ninon);
+                                conns.push(conn);
                                 location.online = true;
 
+                                requestAddressBook();
                             }else{
                                 console.log("what the ... server go wrong ");
-                                Ninon.close();
+                                conn.close();
                             }
                             return;
                         }   
 
                         if(TrustProcess == 3){
                             /* process the msg */
-                            processMessenger(Ninon, data);
+                            processMessenger(conn, data);
                             return;
                         }
                         });
                     });
 
-                    Ninon.on('close', function () {
+                    conn.on('close', function () {
                         console.log("Connection closed");
                         //TODO: remove from conn, mark PL as offline 
                     });
@@ -480,9 +480,36 @@ setTimeout(function(){
     Initialize();
 },Math.random()*100);
 
+//ask everyone to give new addr
+export function requestAddressBook(){
 
+    let newMsg = new Msg();
+    newMsg.data.type = contentType.MSG;
+    newMsg.data.content = msg;
+    newMsg.data.from = PUBLIC_KEY;
+    let connID;
+    PublicListDatabase.forEach(pld => {
+        
+        pld.locations.forEach(location => {
+            if(location.server.host == chosenHost.host){
+                connID = location.id;
+            }
+        });
 
-function SendMsg(TargetPublicKey,msg,direct = true){
+        newMsg.data.to.push(pld.publicKey);
+        newMsg.targetPublicKey = pld.publicKey;
+        newMsg.encrypt(newMsg.targetPublicKey);
+
+        conns.forEach(conn => {
+            if(conn.peer == connID){
+                conn.send(newMsg)
+                console.log("Address request sended to", newMsg);
+            }
+        });
+    });
+}
+
+export function SendMsg(TargetPublicKey,msg,direct = true){
 // function SendMsg(publickeyS,msg){
 
     /* TODO: loop through Keys and send msg */
@@ -520,16 +547,15 @@ function SendMsg(TargetPublicKey,msg,direct = true){
         });
     }
     else {
-        
+        // TODO: Reconnect again 
         console.log("fail to send msg, probably no direct connect", newMsg);
-        
         return false;
-
     }
 
     /* TODO: send to neighbors  */
 
 }
+
 
 
 
