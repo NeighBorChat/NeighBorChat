@@ -58,6 +58,15 @@ html, body {
     bottom: 0;
 }
 
+.msg-content {
+    width: 80%;
+    word-wrap: break-word;
+}
+
+.time {
+    flex-basis: 20%;
+}
+
 .input-msg {
     border: none;
 }

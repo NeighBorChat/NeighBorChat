@@ -28,6 +28,10 @@ export class PublicListData {
     create(obj) {
         obj && Object.assign(this, obj);
     }
+
+    getHID() {
+        return this.HID
+    }
 }
 
 // export class PublicList{

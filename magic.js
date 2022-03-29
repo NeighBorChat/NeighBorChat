@@ -35,7 +35,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[1];
+const chosenHost = hosts[0];
 
 
 
@@ -114,10 +114,16 @@ function processMessenger(conn, data){
         /* if msg from user then  */
         //TODO: PROCESS HERE
         if(msg.data.type == contentType.MSG){
-
-
-
-
+            /*process received message, add to MyContacts arr*/
+            if(MyContacts.some(c => {
+                return c.PKs == msg.data.from
+            })) {
+                pushMsg(msg, false)
+    
+            } else {
+                createNewChat(msg, false)
+    
+            }
 
             console.log('get msg', msg);
         }
@@ -484,6 +490,9 @@ setTimeout(function(){
 
 function SendMsg(TargetPublicKey,msg,direct = true){
 // function SendMsg(publickeyS,msg){
+    if(typeof TargetPublicKey == 'undefined') {
+        return
+    }
 
     /* TODO: loop through Keys and send msg */
     let newMsg = new Msg();
@@ -493,7 +502,6 @@ function SendMsg(TargetPublicKey,msg,direct = true){
     newMsg.data.to.push(TargetPublicKey);
     newMsg.targetPublicKey = TargetPublicKey;
     
-    newMsg.encrypt(newMsg.targetPublicKey);
 
     if(direct){
         /*  loop though the PLD */
@@ -511,13 +519,28 @@ function SendMsg(TargetPublicKey,msg,direct = true){
 
         console.log(conns,connID);
 
+        /*process sended message, add to MyContacts arr*/
+        if(MyContacts.some(c => {
+            return c.PKs == TargetPublicKey
+        })) {
+            pushMsg(newMsg, true)
+
+        } else {
+            createNewChat(newMsg, true)
+
+        }
+
+        newMsg.encrypt(newMsg.targetPublicKey);
         conns.forEach(conn => {
             if(conn.peer == connID){
                 conn.send(newMsg);
                 console.log("msg sended", newMsg);
+
                 return true;
             }
         });
+
+        
     }
     else {
         
@@ -622,6 +645,183 @@ function SignUp() {
 //         return id
 //     });
 // }
+
+/* ----------------------------------------------------------- */
+/*
+    SUPOSE TO BE interface.js
+*/
+class preMsg {
+    constructor() {
+        this.content = "";
+        this.time;
+        this.from; // Name
+    }
+}
+
+class Chat {
+    constructor() {
+        this.Name;
+        this.IMAGE;
+        this.PKs; // to send msg to 
+        this.Msgs = []; //preMsg, sorted by time deliver
+    }
+}
+
+
+//store every msg
+const MyContacts = []
+
+//elements selector
+const UiContacts = document.querySelector('#contacts-list')
+const UiMsgList = document.querySelector('#msg-list')
+const UIChatTop = document.querySelector('.chat-top')
+const UIChatInput = document.querySelector('.chat-bot input')
+const UIChatSendBtn = document.querySelector('.chat-bot .btn-send')
+
+//event listener
+UiContacts.addEventListener("click", e => {
+    // console.log(e.target.closest(".list-group-item"))       
+    loadMsg(e.target.closest(".list-group-item").dataset.pk)
+})
+
+UIChatSendBtn.addEventListener("click", () => {
+    if(UIChatInput.length < 1) 
+        return
+
+    SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
+    UIChatInput.value = ''
+})
+
+UIChatInput.addEventListener("keyup", e => {
+    if (e.keyCode === 13) {
+        if(UIChatInput.length < 1) 
+        return
+
+        SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
+        UIChatInput.value = ''
+    }
+})
+
+/* if Chat exists in MyContacts, call this function to add new message for the right person*/
+function pushMsg(msg, isSender = true) {
+    let premsg = new preMsg()
+
+    premsg.content = msg.data.content
+    premsg.time = msg.data.sendTime
+    premsg.from = msg.targetPublicKey
+
+    let pkForChat = ''
+    if(isSender) {
+        pkForChat = msg.targetPublicKey
+    } else {
+        pkForChat = msg.data.from
+    }
+
+    MyContacts.forEach(c => {
+        if(c.PKs == pkForChat) {
+            c.Msgs.push(premsg)
+        }
+    })
+
+    console.log('new premessage', premsg)
+    console.log('MyContacts updated', MyContacts)
+
+    if(pkForChat == UIChatTop.dataset.pk) {
+        loadMsg(UIChatTop.dataset.pk)
+    }
+}
+
+
+/* if Chat does not exists in MyContacts, call this function to create new chat*/
+function createNewChat(msg, isSender = true) {
+    let premsg = new preMsg()
+
+    premsg.content = msg.data.content
+    premsg.time = msg.data.sendTime
+
+    let chat = new Chat()
+
+    if(isSender) {
+        chat.PKs = msg.targetPublicKey
+        premsg.from = PUBLIC_KEY
+    } else {
+        chat.PKs = msg.data.from
+        premsg.from = msg.data.from
+    }
+
+    chat.Msgs.push(premsg)
+
+    PublicListDatabase.forEach(data => {
+        if(data.publicKey == chat.PKs) {
+            chat.Name = data.HID.name
+            chat.IMAGE = data.HID.image
+        }
+    })
+
+    console.log('New chat created', chat)
+    MyContacts.push(chat)
+    console.log('MyContacts updated', MyContacts)
+    addMyContactsToUi()
+}
+
+/*called if new chat is created*/
+function addMyContactsToUi() {
+    let output = ''
+    MyContacts.forEach(c => { 
+        output += 
+        `<div class="list-group-item py-1 text-dark" aria-current="true" data-pk="${c.PKs}">
+            <div class="d-flex w-100 align-items-center">
+            <div class="mr-1 mr-md-4">
+                <img src="" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
+            </div>
+            <div>
+                <strong class="mb-1 mb-md-0 d-block">${c.Name}</strong>
+                <small>Lorem ipsum, dolor sit amet consectetur</small>
+            </div>
+            </div>
+        </div>`
+    }) 
+
+    UiContacts.innerHTML = output
+}
+
+function loadMsg(pk) {
+    let output = ''
+    let chat = MyContacts.filter(c => c.PKs = pk)[0]
+    chat.Msgs.forEach(msg => {
+        let name = ''
+        if(chat.PKs == msg.from) {
+            name = chat.Name
+        } else {
+            name = 'Me'
+        }
+
+        output += 
+        `<div class="list-group-item border-0 py-1 text-dark" aria-current="true">
+            <div class="d-flex w-100 justify-content-between">
+                <div class="d-flex w-100">
+                    <div class="mr-1 mr-md-4">
+                        <img src="" alt="" style="width: 30px; height: 30px; border-radius: 50%;">  
+                    </div>
+                    <div class="msg-content">
+                        <strong class="mb-0 d-block">${name}</strong>
+                        <small>${msg.content}</small>
+                    </div>
+                </div>
+                <div class="time text-right">
+                    <small>${new Date(msg.time).toLocaleString('en-US')}</small>
+                </div>
+            </div>
+        </div>`
+    })
+
+    UIChatTop.querySelector('p').innerHTML = chat.Name
+    UIChatTop.dataset.pk = pk
+    UiMsgList.innerHTML = output
+}
+
+/* ----------------------------------------------------------- */
+
 
 async function FetchPublicList() {
     return await fetch('https://api.jsonbin.io/b/623c3858a703bb6749338467', {
