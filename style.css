@@ -77,6 +77,10 @@ html, body {
     box-shadow: none;
 }
 
+.active {
+    color: white;
+}
+
 @media (min-width: 992px) {
     .contacts-top,
     .contacts-bot {
@@ -88,3 +92,4 @@ html, body {
         width: 75%;
     }
 }
+

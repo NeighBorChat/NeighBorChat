@@ -481,6 +481,7 @@ function processConnection(host){
             if(TrustProcess == 4){
                 console.log(conn.peer, "offline")
                 //TODO: remove from list;
+
             }
             else
                 console.log('authenticate failed form', conn.peer);
@@ -721,11 +722,19 @@ const UiMsgList = document.querySelector('#msg-list')
 const UIChatTop = document.querySelector('.chat-top')
 const UIChatInput = document.querySelector('.chat-bot input')
 const UIChatSendBtn = document.querySelector('.chat-bot .btn-send')
+const UiSearch = document.querySelector('.contacts-top .search-contact')
 
 //event listener
 UiContacts.addEventListener("click", e => {
     // console.log(e.target.closest(".list-group-item"))       
-    loadMsg(e.target.closest(".list-group-item").dataset.pk)
+    let target = e.target.closest(".list-group-item") 
+    loadMsg(target.dataset.pk)
+
+    let active = UiContacts.querySelector('.active')
+    if(active != null) {
+        active.classList.remove('active')
+    }
+    target.classList.add('active')
 })
 
 UIChatSendBtn.addEventListener("click", () => {
@@ -744,6 +753,10 @@ UIChatInput.addEventListener("keyup", e => {
         SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
         UIChatInput.value = ''
     }
+})
+
+UiSearch.addEventListener("focus", () => {
+    requestAddressBook()
 })
 
 /* if Chat exists in MyContacts, call this function to add new message for the right person*/
@@ -813,9 +826,13 @@ function createNewChat(msg, isSender) {
 /*called if new chat is created*/
 function addMyContactsToUi() {
     let output = ''
-    MyContacts.forEach(c => { 
+    MyContacts.forEach((c, i) => {
+        let active = '' 
+        if(i == MyContacts.length - 1) {
+            active = "active"
+        }
         output += 
-        `<div class="list-group-item py-1 text-dark" aria-current="true" data-pk="${c.PKs}">
+        `<div class="list-group-item py-1 text-dark ${active}" aria-current="true" data-pk="${c.PKs}">
             <div class="d-flex w-100 align-items-center">
             <div class="mr-1 mr-md-4">
                 <img src="" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
@@ -834,7 +851,7 @@ function addMyContactsToUi() {
 function loadMsg(pk) {
     
     let output = ''
-    let chat = MyContacts.filter(c => c.PKs = pk)[0]
+    let chat = MyContacts.filter(c => c.PKs == pk)[0]
     chat.Msgs.forEach(msg => {
         let name = ''
         if(chat.PKs != msg.from) {
