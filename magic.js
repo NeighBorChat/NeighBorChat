@@ -39,7 +39,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[1];
+const chosenHost = hosts[0];
 
 
 
@@ -484,7 +484,7 @@ function processConnection(host){
                                 /* add conn to conns list  */
                                 conns.push(conn);
                                 console.log("connected to ",conn)
-                                SendMsg(msg.data.from,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
+                                // SendMsg(msg.data.from,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
                             };
                         }
                     });
