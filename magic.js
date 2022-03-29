@@ -508,7 +508,7 @@ function processConnection(host){
                     // requestAddressBook();
                     
                     connectToOther();
-                    SendMsg(publicListData.publicKey,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
+                    // SendMsg(publicListData.publicKey,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
                     return;
                 }
                 
