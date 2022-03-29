@@ -790,12 +790,32 @@ const UiModalBtn = document.querySelector('.sign-in-btn')
 UiContacts.addEventListener("click", e => {
     // console.log(e.target.closest(".list-group-item"))       
     let target = e.target.closest(".list-group-item") 
-    loadMsg(target.dataset.pk)
+
 
     let active = UiContacts.querySelector('.active')
     if(active != null) {
         active.classList.remove('active')
     }
+
+    if(IsSearching) {
+        UiContacts.dataset.active = target.dataset.pk
+
+        if(MyContacts.some(c => {
+            return c.PKs == target.dataset.pk
+        })) {
+            addMyContactsToUi()
+        } else {
+            SendMsg(target.dataset.pk, 'hello, i am your new connection', true)
+        }
+        loadMsg(target.dataset.pk)
+
+        UiSearch.value = ''
+        IsSearching = false
+        return
+    }
+    
+    UiContacts.dataset.active = target.dataset.pk
+    loadMsg(target.dataset.pk)
     target.classList.add('active')
 })
 
@@ -810,7 +830,7 @@ UIChatSendBtn.addEventListener("click", () => {
 UIChatInput.addEventListener("keyup", e => {
     if (e.keyCode === 13) {
         if(UIChatInput.length < 1) 
-        return
+            return
 
         SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
         UIChatInput.value = ''
@@ -821,7 +841,15 @@ UiSearch.addEventListener("focus", () => {
     requestAddressBook()
 })
 
-UiBtnSearch.addEventListener("click", () => {
+UiBtnSearch.addEventListener("click", searchContacts)
+
+UiSearch.addEventListener("keyup", e => {
+    if (e.keyCode === 13) {
+        searchContacts()
+    }
+})
+
+function searchContacts() {
     if(UiSearch.value == '') {
         return
     }
@@ -830,8 +858,11 @@ UiBtnSearch.addEventListener("click", () => {
     IsSearching = true
 
     const filteredList = PublicListDatabase.filter(db => {
-        return db.HID.name.toLowerCase().indexOf(value.toLowerCase()) != -1
+        return db.HID.name != null && db.HID.name.toLowerCase().indexOf(value.toLowerCase()) != -1 
     })
+
+    if(filteredList.length < 1)
+        return
 
     console.log('filtered list', filteredList)
     let output = ''
@@ -850,7 +881,7 @@ UiBtnSearch.addEventListener("click", () => {
     })
 
     UiContacts.innerHTML = output
-})
+}
 
 /* if Chat exists in MyContacts, call this function to add new message for the right person*/
 function pushMsg(msg, isSender = true) {
@@ -913,7 +944,9 @@ function createNewChat(msg, isSender) {
     console.log('New chat created', chat)
     MyContacts.push(chat)
     console.log('MyContacts updated', MyContacts)
+    UiContacts.dataset.active = chat.PKs
     addMyContactsToUi()
+    loadMsg(chat.PKs)
 }
 
 /*called if new chat is created*/
@@ -921,7 +954,7 @@ function addMyContactsToUi() {
     let output = ''
     MyContacts.forEach((c, i) => {
         let active = '' 
-        if(i == MyContacts.length - 1) {
+        if(c.PKs == UiContacts.dataset.active) {
             active = "active"
         }
         output += 
@@ -942,15 +975,18 @@ function addMyContactsToUi() {
 }
 
 function loadMsg(pk) {
+
     if(IsSearching) {
-        SendMsg(pk, 'hello, i am your new connection', true)
-        IsSearching = false
-        UiSearch.value = ''
-        return
+
+        // if(typeof(chat) == undefined)
+        //     SendMsg(pk, 'hello, i am your new connection', true)
+        // IsSearching = false
+        // UiSearch.value = ''
+        // return
     }
+    let chat = MyContacts.filter(c => c.PKs == pk)[0]
 
     let output = ''
-    let chat = MyContacts.filter(c => c.PKs == pk)[0]
     chat.Msgs.forEach(msg => {
         let name = ''
         if(chat.PKs != msg.from) {
