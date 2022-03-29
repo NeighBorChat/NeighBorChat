@@ -633,6 +633,7 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
                 newMsg.encrypt(newMsg.targetPublicKey);
 
                 conn.send(newMsg);
+                console.log(connID)
                 console.log("msg sended", newMsg);
                 fixUnexpectedErr = false;
                 return true;
@@ -712,6 +713,7 @@ function hostID() {
 
 function SignUp() {
     let name = window.prompt("What is your name?")
+    UiUserName.innerHTML = name.substring(0,10)
     // let image = window.prompt("What is your image address?")
     // PASSPHRASE = window.prompt("What is your password?")
     // let name = "K"
@@ -785,6 +787,7 @@ const UiSearch = document.querySelector('.contacts-top .search-contact')
 const UiBtnSearch = document.querySelector('.btn-search')
 const UiModalInput = document.querySelector('#signInInput')
 const UiModalBtn = document.querySelector('.sign-in-btn')
+const UiUserName = document.querySelector('.user-name')
 
 //event listener
 UiContacts.addEventListener("click", e => {
