@@ -39,7 +39,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[0];
+const chosenHost = hosts[1];
 
 
 
@@ -65,6 +65,20 @@ const holdingData = [];
 //DIRECT MSG LIST
 const conns = [];
 var peer = null // Own peer object
+
+function upgradePLDB(pld2){
+    const pld1 = PublicListDatabase.find(element => element.publicKey == pld2.publicKey)
+    if(typeof(pld1) != 'undefined'){
+        //update the new input with new addr
+        pld1.HID = pld2.HID;
+        pld1.locations = pld2.locations;
+        return false;
+    }
+    else{
+        PublicListDatabase.push(pld2);
+        return true;
+    }
+}
 
 //set this function to call every time receive new msg
 export var msgGetCallBackFnc = function(msg){
@@ -102,7 +116,6 @@ function processMessenger(conn, data){
             newMsg.data.to.push(msg.data.from);
 
             newMsg.targetPublicKey = msg.data.from;
-
             newMsg.encrypt(newMsg.targetPublicKey);
 
             conn.send(newMsg)
@@ -111,18 +124,15 @@ function processMessenger(conn, data){
         if(msg.data.type == contentType.PUBLIC_LIST){
             
             let newPublicListDatabase = msg.data.content; 
-
+            let haveNewConnect = false;
             newPublicListDatabase.forEach(pld2 => {
-
-                const pld1 = PublicListDatabase.find(element => element.publicKey == pld2.publicKey)
-                if(typeof(pld1) != 'undefined'){
-                    //update the new input with new addr
-                    pld1.HID = pld2.HID;
-                    pld1.locations = pld2.locations;
-                }
-                else
-                    PublicListDatabase.push(pld2);
+                if(upgradePLDB(pld2)){
+                    haveNewConnect = true;
+                };
             });
+
+            if(haveNewConnect)
+                connectToOther();
 
             console.log('get PL', newPublicListDatabase);
         }
@@ -217,8 +227,7 @@ function connectToOther(){
     console.log(PublicListDatabase);
     PublicListDatabase.forEach(pld => {
         if(pld.publicKey != PUBLIC_KEY){
-            console.log("connecting to ", pld);
-
+            
             
             // const location = new Location();
             const location = pld.locations[0];
@@ -232,35 +241,37 @@ function connectToOther(){
                     //     }
                     // }; 
                     
-            let continueConn = true;
-            conns.forEach(conn => {
-                if(conn.peer == location.id){
-                    console.log(conn.peer, location.id);
-                    continueConn = false;
-                }
-            });
-
-            if(connectToOther){
-
-                //TODO: check if need subPeer to send to other host
-                var subPeer = new Peer(chosenHost);
+                    let continueConn = true;
+                    conns.forEach(conn => {
+                        if(conn.peer == location.id){
+                            console.log(conn.peer, location.id);
+                            continueConn = false;
+                        }
+                    });
+                    
+            if(continueConn){
+                console.log("connecting to pld", pld);
                 
-                var TrustProcess = 1;
-                var randomMsg = makeID(30);
+                //TODO: check if need subPeer to send to other host
+                let subPeer = new Peer(chosenHost);
+                
+                let TrustProcess = 1;
+                let randomMsg = makeID(30);
                 
                 subPeer.on('open',function(id){
 
                     // ✔️ alway work
-                    console.log('client id', id);
+                    console.log('get new client id', id);
 
                     //✔️
                     console.log("connecting to ", location.id);
 
-                    var conn = subPeer.connect(location.id);
+                    const conn = subPeer.connect(location.id);
 
                     // ✔️
                     conn.on('open', function() {
                         console.log('gate open');
+
                     // Receive messages
                     conn.on('data', function(data) {
 
@@ -324,7 +335,7 @@ function connectToOther(){
                                 conns.push(conn);
                                 location.online = true;
 
-                                requestAddressBook();
+                                // requestAddressBook();
                             }else{
                                 console.log("what the ... server go wrong ");
                                 conn.close();
@@ -443,29 +454,46 @@ function processConnection(host){
                     
                     msg.decrypt(PRIVATE_KEY); 
                     
-                    //if msg wrong format => err will raise here
-
+                    //if msg wrong format => err NEED to raise here
                     publicListData = new PublicListData();
 
                     publicListData.create(msg.data.content);
 
-                    // this is for the loop over conn to send direct msg, since need dedicate address for sending
-                    publicListData.locations.forEach(location => {
-                        if(location.server.host == chosenHost.host){
-                            location.id = conn.peer;
-                        }
-                    });
-                    // publicListData.locations[0].id = conn.peer; 
-                    
-                    //TODO: if new guy ? add to 
-                    PublicListDatabase.push(publicListData);
+                    // this is for the loop over conn to send direct msg, since need dedicate address for sending 
+                    //      => but it give the wrong addr to other
+                    // publicListData.locations.forEach(location => {
+                    //     if(location.server.host == chosenHost.host){
+                    //         location.id = conn.peer;
+                    //     }
+                    // });
+
+                    upgradePLDB(publicListData);
                     
                     console.log('authenticate success', msg);
                     console.log("added friend to DB", PublicListDatabase);
                     TrustProcess = 4;
                     
-                    /* add conn to conns list  */
-                    conns.push(conn);
+                    /* check if this addr is for sending  */
+                    let Reconnect = true;
+                    publicListData.locations.forEach(location => {
+                        if(location.server.host == chosenHost.host){
+                            if(location.id == conn.peer)
+                            {
+                                Reconnect = false;
+                                /* add conn to conns list  */
+                                conns.push(conn);
+                                console.log("connected to ",conn)
+                                SendMsg(msg.data.from,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
+                            };
+                        }
+                    });
+                    
+                    if(Reconnect){
+                        console.log("now I will connect back ");
+                        connectToOther();
+                        return;
+                    }
+
 
                     /*  check send all DATA from HoldMsg */
                     for(let i = 0; i < holdingData.length; i++){
@@ -475,8 +503,8 @@ function processConnection(host){
                         }
                     }
                     // send a text msg
-                    SendMsg(msg.data.from,"this is a secrete hello !")
-                    requestAddressBook();
+                    // 
+                    // requestAddressBook();
 
                     return;
                 }
@@ -494,8 +522,11 @@ function processConnection(host){
         conn.on('close', function() {
             if(TrustProcess == 4){
                 console.log(conn.peer, "offline")
-                //TODO: remove from list;
-
+                for(let j =0; j < conns.length; j++){
+                    if(conns[i].peer == conn.peer){
+                        conns.splice(i,1);
+                    }
+                }
             }
             else
                 console.log('authenticate failed form', conn.peer);
@@ -550,9 +581,8 @@ export function requestAddressBook(){
 }
 
 export function SendMsg(TargetPublicKey,msg,direct = true){
+    //
     
-    connectToOther();
-
 // function SendMsg(publickeyS,msg){
     if(typeof TargetPublicKey == 'undefined') {
         return
@@ -574,41 +604,47 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
             if(pld.publicKey == TargetPublicKey)
                 console.log("found target");
                 pld.locations.forEach(location => {
-                    console.log("finding id", location);
                     if(location.server.host == chosenHost.host){
                         connID = location.id;
+                        console.log("found id", connID);
                     }
                 });
         });
 
+        
+        
         console.log(conns,connID);
-
+        
         /*process sended message, add to MyContacts arr*/
         if(MyContacts.some(c => {
             return c.PKs == TargetPublicKey
         })) {
             pushMsg(newMsg, true)
-
+            
         } else {
             createNewChat(newMsg, true)
 
         }
 
         newMsg.encrypt(newMsg.targetPublicKey);
+        
+        
         conns.forEach(conn => {
             if(conn.peer == connID){
                 conn.send(newMsg);
                 console.log("msg sended", newMsg);
-
                 return true;
             }
         });
+        console.log(conns);
+        console.log("fail to send msg, probably no direct connect", newMsg);
+        
 
+        
         
     }
     else {
         // TODO: Reconnect again 
-        console.log("fail to send msg, probably no direct connect", newMsg);
         return false;
     }
 
