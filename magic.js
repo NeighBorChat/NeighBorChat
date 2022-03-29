@@ -335,7 +335,7 @@ function connectToOther(){
                                 /* store the connected */
                                 conns.push(conn);
                                 location.online = true;
-
+                                SendMsg(msg.data.from,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
                                 // requestAddressBook();
                             }else{
                                 console.log("what the ... server go wrong ");
@@ -480,11 +480,12 @@ function processConnection(host){
                         if(location.server.host == chosenHost.host){
                             if(location.id == conn.peer)
                             {
+                                //TODO: THIS NEVER WORK
                                 Reconnect = false;
                                 /* add conn to conns list  */
-                                conns.push(conn);
-                                console.log("connected to ",conn)
-                                // SendMsg(msg.data.from,"Hello, this messenger is totally encrypted, and sending directly from me to you ")
+                                // conns.push(conn);
+                                console.log("connected to",conn.peer)
+                                
                             };
                         }
                     });
@@ -630,16 +631,19 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
 
         newMsg.encrypt(newMsg.targetPublicKey);
         
-        
+        let fixUnexpectedErr = true;
         conns.forEach(conn => {
             if(conn.peer == connID){
                 conn.send(newMsg);
                 console.log("msg sended", newMsg);
+                fixUnexpectedErr = false;
                 return true;
             }
         });
-        console.log(conns);
-        console.log("fail to send msg, probably no direct connect", newMsg);
+        if(fixUnexpectedErr){
+            console.log(conns,connID);
+            console.log("fail to send msg, probably no direct connect", newMsg);
+        }
         
 
         
