@@ -39,7 +39,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[0];
+const chosenHost = hosts[1];
 
 
 
@@ -123,8 +123,6 @@ function processMessenger(conn, data){
                 else
                     PublicListDatabase.push(pld2);
             });
-
-            connectToOther();
 
             console.log('get PL', newPublicListDatabase);
         }
@@ -237,6 +235,7 @@ function connectToOther(){
             let continueConn = true;
             conns.forEach(conn => {
                 if(conn.peer == location.id){
+                    console.log(conn.peer, location.id);
                     continueConn = false;
                 }
             });
@@ -551,6 +550,9 @@ export function requestAddressBook(){
 }
 
 export function SendMsg(TargetPublicKey,msg,direct = true){
+    
+    connectToOther();
+
 // function SendMsg(publickeyS,msg){
     if(typeof TargetPublicKey == 'undefined') {
         return
