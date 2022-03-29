@@ -55,6 +55,7 @@ const BITS = 1024
 var PRIVATE_KEY = null
 var PUBLIC_KEY = null
 let MyPLD;
+let Name = null
 //Address Book 
 export const PublicListDatabase = [];
 //HOLD DATA LIST
@@ -162,7 +163,7 @@ function Initialize(){
 
     /* TEMPORARY CREATE AN ACCOUNT */
     // TODO: LOAD Key and data form DB
-
+    
     //Get key
     CreateKey();
 
@@ -547,6 +548,7 @@ function processConnection(host){
     },1000);
 }
 
+
 setTimeout(function(){
     Initialize();
 },Math.random()*100);
@@ -752,6 +754,7 @@ function SignUp() {
 /*
     SUPOSE TO BE interface.js
 */
+
 class preMsg {
     constructor() {
         this.content = "";
@@ -782,6 +785,8 @@ const UIChatInput = document.querySelector('.chat-bot input')
 const UIChatSendBtn = document.querySelector('.chat-bot .btn-send')
 const UiSearch = document.querySelector('.contacts-top .search-contact')
 const UiBtnSearch = document.querySelector('.btn-search')
+const UiModalInput = document.querySelector('#signInInput')
+const UiModalBtn = document.querySelector('.sign-in-btn')
 
 //event listener
 UiContacts.addEventListener("click", e => {
@@ -978,4 +983,14 @@ function loadMsg(pk) {
     UIChatTop.querySelector('p').innerHTML = chat.Name
     UIChatTop.dataset.pk = pk
     UiMsgList.innerHTML = output
+}
+
+function getInputModal() {
+    $('#signInModal').modal('show')
+    UiModalBtn.addEventListener('click', e => {
+        if(UiModalInput.value != '') {
+            console.log(UiModalInput.value)
+            return UiModalInput.value
+        }
+    })
 }
