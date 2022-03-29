@@ -132,6 +132,8 @@ function processMessenger(conn, data){
 function Initialize(){
 
     /* TEMPORARY CREATE AN ACCOUNT */
+    // TODO: LOAD Key and data form DB
+
     //Get key
     CreateKey();
 
@@ -480,7 +482,7 @@ setTimeout(function(){
 
 
 
-function SendMsg(TargetPublicKey,msg,direct){
+function SendMsg(TargetPublicKey,msg,direct = true){
 // function SendMsg(publickeyS,msg){
 
     /* TODO: loop through Keys and send msg */
@@ -516,10 +518,10 @@ function SendMsg(TargetPublicKey,msg,direct){
                 return true;
             }
         });
-        console.log("fail to send msg, probably no direct connect", newMsg);
     }
     else {
         
+        console.log("fail to send msg, probably no direct connect", newMsg);
         
         return false;
 
