@@ -131,7 +131,13 @@ function processMessenger(conn, data){
         /* if msg from user then  */
         //TODO: PROCESS HERE
         if(msg.data.type == contentType.MSG){
-            msgGetCallBackFnc(msg);
+            if(MyContacts.some(c => {
+                return c.PKs == msg.data.from
+            })) {
+                pushMsg(msg, false)
+            } else {
+                createNewChat(msg, false)
+            }
 
             console.log('get msg', msg);
         }
@@ -310,7 +316,7 @@ function connectToOther(){
                             conns.push(conn);
                             location.online = true;
 
-                            // requestAddressBook();
+                            requestAddressBook();
                         }else{
                             console.log("what the ... server go wrong ");
                             conn.close();
@@ -501,10 +507,6 @@ setTimeout(function(){
 //ask everyone to give new addr
 export function requestAddressBook(){
 
-    let newMsg = new Msg();
-    newMsg.data.type = contentType.MSG;
-    newMsg.data.content = msg;
-    newMsg.data.from = PUBLIC_KEY;
     let connID;
     PublicListDatabase.forEach(pld => {
         
@@ -514,6 +516,11 @@ export function requestAddressBook(){
             }
         });
 
+
+        let newMsg = new Msg();
+        newMsg.data.type = contentType.PUBLIC_LIST_REQUEST;
+        newMsg.data.content = '';
+        newMsg.data.from = PUBLIC_KEY;
         newMsg.data.to.push(pld.publicKey);
         newMsg.targetPublicKey = pld.publicKey;
         newMsg.encrypt(newMsg.targetPublicKey);
@@ -590,7 +597,6 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
     /* TODO: send to neighbors  */
 
 }
-
 
 
 
@@ -777,7 +783,7 @@ function createNewChat(msg, isSender) {
     premsg.content = msg.data.content
     premsg.time = msg.data.sendTime
 
-    let chat = new Chat()
+    const chat = new Chat()
 
     if(isSender) {
         console.log('msg.targetPublicKey',msg.targetPublicKey)
