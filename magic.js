@@ -194,6 +194,143 @@ function Initialize(){
     
 }
 
+function connectToOther(){
+    /* connect to other in PL */
+    console.log(PublicListDatabase);
+    PublicListDatabase.forEach(pld => {
+        if(pld.publicKey != PUBLIC_KEY){
+            console.log("connecting to ", pld);
+
+
+            // const location = new Location();
+            const location = pld.locations[0];
+            
+
+            // for(let element of pld.locations){
+            //     console.log(element);
+            //     if(element.server == chosenHost.host){
+            //         location = element;
+            //         break;
+            //     }
+            // }; 
+
+
+            //TODO: check if need subPeer to send to other host
+            var subPeer = new Peer(chosenHost);
+            
+            var TrustProcess = 1;
+            var randomMsg = makeID(30);
+            
+            subPeer.on('open',function(id){
+
+                // ✔️ alway work
+                console.log('client id', id);
+
+                //✔️
+                console.log("connecting to ", location.id);
+
+                var conn = subPeer.connect(location.id);
+
+                // ✔️
+                conn.on('open', function() {
+                    console.log('gate open');
+                // Receive messages
+                conn.on('data', function(data) {
+
+                    if(TrustProcess == 1){
+                        console.log('Received PK', data);
+
+                        if(pld.publicKey == ""){
+                            pld.publicKey = data;
+                        }else{
+                            if(data != pld.publicKey){
+                                console.log("public key changed ! or wrong format", data);
+                                //TODO: what now ?, roll the PL to find the correct PK => no, if host addr then just ignore this change
+                            }
+                        }
+                        let newMsg = new Msg();
+                        newMsg.data.type = contentType.MSG;
+                        newMsg.data.content = randomMsg;
+                        newMsg.data.from = PUBLIC_KEY;
+                        newMsg.data.to.push(pld.publicKey);
+                        newMsg.targetPublicKey = pld.publicKey;
+                        
+                        newMsg.encrypt(newMsg.targetPublicKey);
+                        console.log('sending', newMsg);
+                        //✔️
+                        conn.send(newMsg);
+                        TrustProcess = 2;
+                        return;
+                    }
+
+                    if(TrustProcess == 2){
+                        const msg = new Msg();
+                        
+                        msg.create(data);
+
+                        // ✔️
+                        console.log('get raw ',msg);
+
+                        msg.decrypt(PRIVATE_KEY); 
+
+                        if(msg.data.content == randomMsg){
+                            TrustProcess = 3;
+                            
+                            let newMsg = new Msg()
+                            newMsg.data.type = contentType.PUBLIC_LIST; //not check for this pl
+                            newMsg.data.content = MyPLD;
+                            newMsg.data.from = PUBLIC_KEY;
+                            newMsg.data.to.push(pld.publicKey);
+                            newMsg.targetPublicKey = pld.publicKey;
+
+                            // console.log("connection established ");
+                            // console.log("PUBLIC_KEY",PUBLIC_KEY);
+                            // console.log("pld.publicKey",pld.publicKey);
+                            // console.log("MyPLD",MyPLD);
+                            console.log("connection established ");
+                            // console.log("connection established ", newMsg);
+                            newMsg.encrypt(newMsg.targetPublicKey);
+                            
+                            conn.send(newMsg);     
+                            
+                            /* store the connected */
+                            conns.push(conn);
+                            location.online = true;
+
+                            requestAddressBook();
+                        }else{
+                            console.log("what the ... server go wrong ");
+                            conn.close();
+                        }
+                        return;
+                    }   
+
+                    if(TrustProcess == 3){
+                        /* process the msg */
+                        processMessenger(conn, data);
+                        return;
+                    }
+                    });
+                });
+
+                conn.on('close', function () {
+                    console.log("Connection closed");
+                    //TODO: remove from conn, mark PL as offline 
+                });
+
+
+            });
+
+            subPeer.on('error', function(err) { 
+                //connection dead
+                console.log(location.ID, "dead");
+                location.online = false;
+            });
+        }
+    });
+}
+
+
 function processConnection(host){
 
     /* add or MODIFY self into list */
@@ -340,139 +477,7 @@ function processConnection(host){
     //update connection into PL
 
     setTimeout(function(){
-        /* connect to other in PL */
-        console.log(PublicListDatabase);
-        PublicListDatabase.forEach(pld => {
-            if(pld.publicKey != PUBLIC_KEY){
-                console.log("connecting to ", pld);
-
-
-                // const location = new Location();
-                const location = pld.locations[0];
-                
-
-                // for(let element of pld.locations){
-                //     console.log(element);
-                //     if(element.server == chosenHost.host){
-                //         location = element;
-                //         break;
-                //     }
-                // }; 
-
-
-                //TODO: check if need subPeer to send to other host
-                var subPeer = new Peer(chosenHost);
-                
-                var TrustProcess = 1;
-                var randomMsg = makeID(30);
-                
-                subPeer.on('open',function(id){
-
-                    // ✔️ alway work
-                    console.log('client id', id);
-
-                    //✔️
-                    console.log("connecting to ", location.id);
-
-                    var conn = subPeer.connect(location.id);
-
-                    // ✔️
-                    conn.on('open', function() {
-                        console.log('gate open');
-                    // Receive messages
-                    conn.on('data', function(data) {
-
-                        if(TrustProcess == 1){
-                            console.log('Received PK', data);
-
-                            if(pld.publicKey == ""){
-                                pld.publicKey = data;
-                            }else{
-                                if(data != pld.publicKey){
-                                    console.log("public key changed ! or wrong format", data);
-                                    //TODO: what now ?, roll the PL to find the correct PK => no, if host addr then just ignore this change
-                                }
-                            }
-                            let newMsg = new Msg();
-                            newMsg.data.type = contentType.MSG;
-                            newMsg.data.content = randomMsg;
-                            newMsg.data.from = PUBLIC_KEY;
-                            newMsg.data.to.push(pld.publicKey);
-                            newMsg.targetPublicKey = pld.publicKey;
-                            
-                            newMsg.encrypt(newMsg.targetPublicKey);
-                            console.log('sending', newMsg);
-                            //✔️
-                            conn.send(newMsg);
-                            TrustProcess = 2;
-                            return;
-                        }
-
-                        if(TrustProcess == 2){
-                            const msg = new Msg();
-                            
-                            msg.create(data);
-
-                            // ✔️
-                            console.log('get raw ',msg);
-
-                            msg.decrypt(PRIVATE_KEY); 
-
-                            if(msg.data.content == randomMsg){
-                                TrustProcess = 3;
-                                
-                                let newMsg = new Msg()
-                                newMsg.data.type = contentType.PUBLIC_LIST; //not check for this pl
-                                newMsg.data.content = MyPLD;
-                                newMsg.data.from = PUBLIC_KEY;
-                                newMsg.data.to.push(pld.publicKey);
-                                newMsg.targetPublicKey = pld.publicKey;
-
-                                // console.log("connection established ");
-                                // console.log("PUBLIC_KEY",PUBLIC_KEY);
-                                // console.log("pld.publicKey",pld.publicKey);
-                                // console.log("MyPLD",MyPLD);
-                                console.log("connection established ");
-                                // console.log("connection established ", newMsg);
-                                newMsg.encrypt(newMsg.targetPublicKey);
-                                
-                                conn.send(newMsg);     
-                                
-                                /* store the connected */
-                                conns.push(conn);
-                                location.online = true;
-
-                                requestAddressBook();
-                            }else{
-                                console.log("what the ... server go wrong ");
-                                conn.close();
-                            }
-                            return;
-                        }   
-
-                        if(TrustProcess == 3){
-                            /* process the msg */
-                            processMessenger(conn, data);
-                            return;
-                        }
-                        });
-                    });
-
-                    conn.on('close', function () {
-                        console.log("Connection closed");
-                        //TODO: remove from conn, mark PL as offline 
-                    });
-
-
-                });
-
-                subPeer.on('error', function(err) { 
-                    //connection dead
-                    console.log(location.ID, "dead");
-                    location.online = false;
-                });
-            }
-        });
+        connectToOther();
     },1000);
 }
 
