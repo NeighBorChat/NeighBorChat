@@ -99,9 +99,9 @@ function processMessenger(conn, data){
             newMsg.data.type = contentType.PUBLIC_LIST;
             newMsg.data.content = PublicListDatabase;
             newMsg.data.from = PUBLIC_KEY;
-            newMsg.data.to.push(msg.from);
+            newMsg.data.to.push(msg.data.from);
 
-            newMsg.targetPublicKey = msg.from;
+            newMsg.targetPublicKey = msg.data.from;
 
             newMsg.encrypt(newMsg.targetPublicKey);
 
@@ -730,6 +730,7 @@ class Chat {
 
 //store every msg
 const MyContacts = []
+let IsSearching = false
 
 //elements selector
 const UiContacts = document.querySelector('#contacts-list')
@@ -738,6 +739,7 @@ const UIChatTop = document.querySelector('.chat-top')
 const UIChatInput = document.querySelector('.chat-bot input')
 const UIChatSendBtn = document.querySelector('.chat-bot .btn-send')
 const UiSearch = document.querySelector('.contacts-top .search-contact')
+const UiBtnSearch = document.querySelector('.btn-search')
 
 //event listener
 UiContacts.addEventListener("click", e => {
@@ -772,6 +774,37 @@ UIChatInput.addEventListener("keyup", e => {
 
 UiSearch.addEventListener("focus", () => {
     requestAddressBook()
+})
+
+UiBtnSearch.addEventListener("click", () => {
+    if(UiSearch.value == '') {
+        return
+    }
+
+    const value = UiSearch.value
+    IsSearching = true
+
+    const filteredList = PublicListDatabase.filter(db => {
+        return db.HID.name.toLowerCase().indexOf(value.toLowerCase()) != -1
+    })
+
+    console.log('filtered list', filteredList)
+    let output = ''
+    filteredList.forEach(db => {
+        output +=  `
+        <div class="list-group-item py-1 text-dark" aria-current="true" data-pk="${db.publicKey}">
+            <div class="d-flex w-100 align-items-center">
+                <div class="mr-1 mr-md-4">
+                    <img src="" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
+                </div>
+                <div>
+                    <strong class="mb-1 mb-md-0 d-block">${db.HID.name}</strong>
+                </div>
+            </div>
+        </div>`
+    })
+
+    UiContacts.innerHTML = output
 })
 
 /* if Chat exists in MyContacts, call this function to add new message for the right person*/
@@ -864,7 +897,13 @@ function addMyContactsToUi() {
 }
 
 function loadMsg(pk) {
-    
+    if(IsSearching) {
+        SendMsg(pk, 'hello, i am your new connection', true)
+        IsSearching = false
+        UiSearch.value = ''
+        return
+    }
+
     let output = ''
     let chat = MyContacts.filter(c => c.PKs == pk)[0]
     chat.Msgs.forEach(msg => {
