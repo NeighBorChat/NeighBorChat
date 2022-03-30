@@ -106,8 +106,7 @@ UiSearch.addEventListener("focus", () => {
 UiBtnSearch.addEventListener("click", searchContacts)
 
 UiSearch.addEventListener("keyup", e => {
-        searchContacts()
-    
+    searchContacts()
 })
 
 function sendInput() {
