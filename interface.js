@@ -157,13 +157,14 @@ function pushMsg(msg, isSender = true) {
 
     premsg.content = msg.data.content
     premsg.time = msg.data.sendTime
-    premsg.from = msg.targetPublicKey
 
     let pkForChat = ''
     if(isSender) {
         pkForChat = msg.targetPublicKey
+        premsg.from = msg.PUBLIC_KEY
     } else {
         pkForChat = msg.data.from
+        premsg.from = msg.data.from
     }
 
     MyContacts.forEach(c => {
@@ -246,20 +247,20 @@ function addMyContactsToUi() {
 
 function loadMsg(pk) {
 
-    if(IsSearching) {
+    // if(IsSearching) {
 
-        // if(typeof(chat) == undefined)
-        //     SendMsg(pk, 'hello, i am your new connection', true)
-        // IsSearching = false
-        // UiSearch.value = ''
-        // return
-    }
+    //     // if(typeof(chat) == undefined)
+    //     //     SendMsg(pk, 'hello, i am your new connection', true)
+    //     // IsSearching = false
+    //     // UiSearch.value = ''
+    //     // return
+    // }
     let chat = MyContacts.filter(c => c.PKs == pk)[0]
 
     let output = ''
     chat.Msgs.forEach(msg => {
         let name = ''
-        if(chat.PKs != msg.from) {
+        if(chat.PKs == msg.from) {
             name = chat.Name
         } else {
             name = 'Me'
