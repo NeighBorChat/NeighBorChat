@@ -1,4 +1,4 @@
-import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY, putDB} from "./conection/magic.js"
+import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY, putDB, clearDB} from "./conection/magic.js"
 import {contentType, Msg} from './conection/database/MsgPks.js';
 
 const CHAT_DB_ID = "thisAppIsReallyGreat" 
@@ -8,8 +8,12 @@ db.info().then(function (info) {
     console.log(JSON.stringify(info)); //✔️
 });
 
-function clearDB(){
+function clearChatDB(){
+    clearDB();
     db.remove(CHAT_DB_ID);
+    db.destroy('chats');
+    db = new PouchDB('chats');
+
 }
 
 function putChatDB(){
@@ -39,7 +43,10 @@ function loadDB(){
         })
 }
 
+clearChatDB();
+
 loadDB();
+
 
 window.addEventListener('beforeunload', function (e) {
     //let hope this work

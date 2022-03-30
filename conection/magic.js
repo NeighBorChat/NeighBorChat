@@ -45,6 +45,8 @@ const chosenHost = hosts[0];
 
 export function clearDB(){
     db.remove(SYS_ID);
+    db.destroy('system');
+    db = new PouchDB('system');
 }
 
 export function putDB(){
@@ -764,4 +766,4 @@ function SignUp() {
 
 setTimeout(function(){
     Initialize();
-},Math.random()*1000);
+},1000);
