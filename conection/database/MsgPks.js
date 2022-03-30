@@ -21,6 +21,9 @@ export class data {
     }
 }
 
+
+
+
 export class Msg {
     constructor() {
         this.targetPublicKey = ""; 
@@ -31,7 +34,11 @@ export class Msg {
     }
     encrypt(key){
         /* encript the content */
-        this.data = cryptico.encrypt(JSON.stringify(this.data), key).cipher;
+        let json = JSON.stringify(this.data)
+        json  = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
+            return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4)
+        })
+        this.data = cryptico.encrypt(json, key).cipher;
         // let message =  this.data;
         // let enc = new TextEncoder();
         // let encoded = enc.encode(message);
