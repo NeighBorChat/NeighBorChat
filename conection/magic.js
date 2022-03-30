@@ -52,9 +52,9 @@ export function clearDB(){
 export function putDB(){
     var doc = {
         "_id": SYS_ID,
-        // "PASSPHRASE": PASSPHRASE,
-        "PRIVATE_KEY": PRIVATE_KEY,
-        "PUBLIC_KEY": PUBLIC_KEY,
+        "PASSPHRASE": PASSPHRASE,
+        // "PRIVATE_KEY": PRIVATE_KEY,
+        // "PUBLIC_KEY": PUBLIC_KEY,
         "BITS": BITS,
         "MyPLD": MyPLD,
         "PublicListDatabase": PublicListDatabase,
@@ -66,14 +66,14 @@ export function putDB(){
 function loadDB(){
     db.get(SYS_ID).then(function (doc) {
             console.log("load data", doc);
-            // PASSPHRASE = doc.PASSPHRASE;
-            PRIVATE_KEY = doc.PRIVATE_KEY;
-            PUBLIC_KEY = doc.PUBLIC_KEY;
+            PASSPHRASE = doc.PASSPHRASE;
+            // PRIVATE_KEY = doc.PRIVATE_KEY;
+            // PUBLIC_KEY = doc.PUBLIC_KEY;
             BITS = doc.BITS;
             MyPLD = doc.MyPLD;
             PublicListDatabase = doc.PublicListDatabase;
             holdingData = doc.holdingData;
-            // CreateKey();
+            CreateKey();
             sigUpCallBack(MyPLD.HID.name, PUBLIC_KEY);
         }).catch(function (err) {
             /* incase no DB preload */
