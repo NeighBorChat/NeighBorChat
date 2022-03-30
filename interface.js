@@ -1,4 +1,4 @@
-import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY, putDB, clearDB} from "./conection/magic.js"
+import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY, putDB, clearDB, Initialize} from "./conection/magic.js"
 import {contentType, Msg} from './conection/database/MsgPks.js';
 
 const CHAT_DB_ID = "thisAppIsReallyGreat" 
@@ -106,6 +106,8 @@ const UiBtnSearch = document.querySelector('.btn-search')
 const UiModalInput = document.querySelector('#signInInput')
 const UiModalBtn = document.querySelector('.sign-in-btn')
 const UiUserName = document.querySelector('.user-name')
+const UiBtnClearDB = document.querySelector('.btn-cleardb') 
+
 
 //event listener
 UiContacts.addEventListener("click", e => {
@@ -161,6 +163,14 @@ UiBtnSearch.addEventListener("click", searchContacts)
 
 UiSearch.addEventListener("keyup", e => {
     searchContacts()
+})
+
+UiBtnClearDB.addEventListener("click", () => {
+    let answer = window.prompt("Clear DB? Are you sure? Type 'YOLO' to agree.")
+    if (answer == 'YOLO') {
+        clearChatDB()
+        location.reload()
+    }
 })
 
 function sendInput() {
