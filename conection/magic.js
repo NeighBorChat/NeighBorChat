@@ -56,7 +56,7 @@ const BITS = 1024
 let PRIVATE_KEY = null
 export let PUBLIC_KEY = null
 let MyPLD;
-let Name = null
+// let Name = null
 //Address Book 
 export const PublicListDatabase = [];
 //HOLD DATA LIST
@@ -87,7 +87,7 @@ function upgradePLDB(pld2){
 
 
 //set this function to call every time receive new msg
-var msgGetCallBackFnc = function(msg){};
+var msgGetCallBackFnc = function(msg, isSender){};
 
 var sigUpCallBack = function(name){};
 
@@ -149,7 +149,6 @@ function processMessenger(conn, data){
         holdingData.push(msg);
     }
 }
-
 
 function Initialize(){
 
@@ -246,7 +245,10 @@ function connectToOther(){
                 console.log("connecting to pld", pld);
                 
                 //TODO: check if need subPeer to send to other host
-                let subPeer = new Peer(chosenHost);
+                //TODO: POP this connection
+                peers.push(new Peer(chosenHost));
+                //keep the peers ... to pe*
+                let subPeer = peers.slice(-1)[0] 
                 
                 let TrustProcess = 1;
                 let randomMsg = makeID(30);
@@ -358,8 +360,8 @@ function connectToOther(){
                 });
 
                 subPeer.on('error', function(err) { 
-                    //connection dead
-                    console.log(location.ID, "dead");
+                    //connection to server dead
+                    console.log(err);
                     location.online = false;
                 });
             }

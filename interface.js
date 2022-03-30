@@ -1,6 +1,6 @@
-import {PublicListDatabase,setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY} from "./conection/magic.js"
+import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY} from "./conection/magic.js"
 
-let msgGetCallBackFnc = function(msg){
+let msgGetCallBackFnc = function(msg, isSender){
     /*process received message, add to MyContacts arr*/
     if(MyContacts.some(c => {
         return c.PKs == msg.data.from
@@ -73,7 +73,7 @@ UiContacts.addEventListener("click", e => {
         })) {
             addMyContactsToUi()
         } else {
-            SendMsg(target.dataset.pk, 'hello, i am your new connection', true)
+            SendMsg(target.dataset.pk, `hello, i am ${UiUserName.innerHTML} your new connection`, true)
         }
         loadMsg(target.dataset.pk)
 
@@ -186,7 +186,7 @@ function createNewChat(msg, isSender) {
     let premsg = new preMsg()
 
     console.log(msg);
-    
+
     premsg.content = msg.data.content
     premsg.time = msg.data.sendTime
 
