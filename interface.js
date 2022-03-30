@@ -1,9 +1,51 @@
 import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY, putDB} from "./conection/magic.js"
 import {contentType, Msg} from './conection/database/MsgPks.js';
 
+const CHAT_DB_ID = "thisAppIsReallyGreat" 
+
+var db = new PouchDB('chats');
+db.info().then(function (info) {
+    console.log(JSON.stringify(info)); //✔️
+});
+
+function clearDB(){
+    db.remove(CHAT_DB_ID);
+}
+
+function putChatDB(){
+    var doc = {
+        "_id": CHAT_DB_ID,
+        "MyContacts": MyContacts
+      };
+      db.put(doc);
+}
+
+function loadDB(){
+    db.get(CHAT_DB_ID).then(function (doc) {
+            console.log("load data", doc);
+            MyContacts = doc.MyContacts;
+            /*
+                preload MSG here
+            */
+
+            MyContacts.forEach(contact => {
+                loadMsg(contact.PKs);
+            });
+            addMyContactsToUi(); // ?????
+
+        }).catch(function (err) {
+            /* incase no DB preload */
+            console.log("look like you are the new user",err);
+        })
+}
+
+loadDB();
+
 window.addEventListener('beforeunload', function (e) {
+    //let hope this work
     e.preventDefault();
     putDB();
+    putChatDB();
     window.close();
 });
 
@@ -42,9 +84,8 @@ class Chat {
     }
 }
 
-
 //store every msg
-const MyContacts = []
+let MyContacts = []
 let IsSearching = false
 
 //elements selector
@@ -193,7 +234,6 @@ function pushMsg(msg, isSender = true) {
         loadMsg(UIChatTop.dataset.pk)
     }
 }
-
 
 /* if Chat does not exists in MyContacts, call this function to create new chat*/
 function createNewChat(msg, isSender) {

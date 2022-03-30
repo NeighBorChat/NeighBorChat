@@ -76,7 +76,6 @@ function loadDB(){
             putDB();
             CreateKey();
         })
-
 }
 /******************************** DATABASE ********************************************/
 
@@ -184,7 +183,7 @@ function processMessenger(conn, data){
     }
 }
 
-function Initialize(){
+export function Initialize(){
 
     /* TEMPORARY CREATE AN ACCOUNT */
     // TODO: LOAD Key and data form DB
