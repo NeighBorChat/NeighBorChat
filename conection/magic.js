@@ -4,6 +4,7 @@
 import {contentType, Msg} from './database/MsgPks.js';
 import { Location, PublicListData, HID } from './database/publicPks.js';
 
+
 function makeID(length) {
     var result           = '';
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*() ';
@@ -39,7 +40,7 @@ const HOST_ID = "qm28y8eqqxeqm2t9"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[1];
+const chosenHost = hosts[0];
 
 
 
@@ -53,7 +54,7 @@ let PASSPHRASE = makeID(20);
 const BITS = 1024
 // const BITS = 4096
 let PRIVATE_KEY = null
-let PUBLIC_KEY = null
+export let PUBLIC_KEY = null
 let MyPLD;
 let Name = null
 //Address Book 
@@ -139,7 +140,7 @@ function processMessenger(conn, data){
 
         /* if msg from user then  */
         if(msg.data.type == contentType.MSG){
-            msgGetCallBackFnc(msg);
+            msgGetCallBackFnc(msg, false);
             console.log('get msg', msg);
         }
 
@@ -615,7 +616,7 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
                 // } else {
                 //     createNewChat(newMsg, true)
                 // }
-                msgGetCallBackFnc(newMsg);
+                msgGetCallBackFnc(newMsg, true);
 
                 newMsg.encrypt(newMsg.targetPublicKey);
 
