@@ -1,5 +1,11 @@
-import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY} from "./conection/magic.js"
+import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY, putDB} from "./conection/magic.js"
 import {contentType, Msg} from './conection/database/MsgPks.js';
+
+window.addEventListener('beforeunload', function (e) {
+    e.preventDefault();
+    putDB();
+    window.close();
+});
 
 let msgGetCallBackFnc = function(msg, isSender, pk){
     /*process received message, add to MyContacts arr*/

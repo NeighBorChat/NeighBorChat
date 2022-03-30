@@ -22,10 +22,10 @@ function makeID(length) {
 }
 
 /****************************** CONSTANT **************************************/
-// var db = new PouchDB('system');
-// db.info().then(function (info) {
-//     console.log(JSON.stringify(info));
-// });
+var db = new PouchDB('system');
+db.info().then(function (info) {
+    console.log(JSON.stringify(info)); //✔️
+});
 
 const WAIT_TIME = 5000;
 
@@ -37,13 +37,47 @@ NOTE: SETTING SECTION, if create setting page, allow user to change those parame
 
 // this kind of a public ID to create connection 
 const HOST_ID = "qm28y8eqqxeqm2t9" 
+const SYS_ID = "thisAppIsSoooooGreat" 
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
 const chosenHost = hosts[0];
 
+export function clearDB(){
+    db.remove(SYS_ID);
+}
 
+export function putDB(){
+    var doc = {
+        "_id": SYS_ID,
+        "PASSPHRASE": PASSPHRASE,
+        "BITS": BITS,
+        "MyPLD": MyPLD,
+        "PublicListDatabase": PublicListDatabase,
+        "holdingData": holdingData,
+      };
+      db.put(doc);
+}
 
+function loadDB(){
+    db.get(SYS_ID).then(function (doc) {
+            console.log("load data", doc);
+            PASSPHRASE = doc.PASSPHRASE;
+            BITS = doc.BITS;
+            MyPLD = doc.MyPLD;
+            PublicListDatabase = doc.PublicListDatabase;
+            holdingData = doc.holdingData;
+            CreateKey();
+            sigUpCallBack(MyPLD.HID.name, PUBLIC_KEY);
+        }).catch(function (err) {
+            /* incase no DB preload */
+            console.log(err);
+            MyPLD = SignUp();
+            putDB();
+            CreateKey();
+        })
+
+}
 /******************************** DATABASE ********************************************/
 
 /* WARNING: SINCE THIS IS THE KEY TO GENERATE KEYs, the same passphrase will create the same pass */
@@ -51,16 +85,16 @@ let PASSPHRASE = makeID(20);
 // 1024 is decrypt-able nowadays ❌❌❌❌❌❌❌
 // please use 4096 in product !!!!
 /* Alowe user to seting up to max bit ? TODO: reseach this */
-const BITS = 1024
+let BITS = 1024
 // const BITS = 4096
 let PRIVATE_KEY = null
 export let PUBLIC_KEY = null
 let MyPLD;
 // let Name = null
 //Address Book 
-export const PublicListDatabase = [];
+export let PublicListDatabase = [];
 //HOLD DATA LIST
-const holdingData = [];
+let holdingData = [];
 
 
 /* VARIABLE */
@@ -154,9 +188,8 @@ function Initialize(){
 
     /* TEMPORARY CREATE AN ACCOUNT */
     // TODO: LOAD Key and data form DB
-    
+    loadDB();
     //Get key
-    CreateKey();
 
     /* chose one alive server */
 
@@ -373,12 +406,14 @@ function processConnection(host){
 
     /* add or MODIFY self into list */
     //TODO: ADD DB into sys
-    MyPLD = SignUp();
-    PublicListDatabase.push(MyPLD);
+    
+    // PublicListDatabase.push(MyPLD);
+    upgradePLDB(MyPLD)
 
     //temporary add host ID, but not get PK of host yet
     if(!host){
-        PublicListDatabase.push(hostID());
+        // PublicListDatabase.push();
+        upgradePLDB(hostID())
     }
 
     /* define EVERY TIME receive msg, act as a host ✔️ */
