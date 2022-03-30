@@ -1,9 +1,9 @@
 import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY} from "./conection/magic.js"
 
-let msgGetCallBackFnc = function(msg, isSender){
+let msgGetCallBackFnc = function(msg, isSender, pk){
     /*process received message, add to MyContacts arr*/
     if(MyContacts.some(c => {
-        return c.PKs == msg.data.from
+        return c.PKs == pk
     })) {
         pushMsg(msg, isSender)
 

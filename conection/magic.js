@@ -140,7 +140,7 @@ function processMessenger(conn, data){
 
         /* if msg from user then  */
         if(msg.data.type == contentType.MSG){
-            msgGetCallBackFnc(msg, false);
+            msgGetCallBackFnc(msg, false, msg.data.from);
             console.log('get msg', msg);
         }
 
@@ -618,7 +618,7 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
                 // } else {
                 //     createNewChat(newMsg, true)
                 // }
-                msgGetCallBackFnc(newMsg, true);
+                msgGetCallBackFnc(newMsg, true, TargetPublicKey);
 
                 newMsg.encrypt(newMsg.targetPublicKey);
 
