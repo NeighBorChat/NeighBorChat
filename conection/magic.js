@@ -573,7 +573,7 @@ export function requestAddressBook(){
 }
 
 export function SendMsg(TargetPublicKey,msg,direct = true){
-    if(typeof TargetPublicKey == 'undefined') {
+    if(typeof (TargetPublicKey) == 'undefined') {
         return
     }
 
@@ -590,7 +590,7 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
         /*  loop though the PLD */
         let connID;
         PublicListDatabase.forEach(pld => {
-            if(pld.publicKey == TargetPublicKey)
+            if(pld.publicKey == TargetPublicKey) {
                 console.log("found target");
                 pld.locations.forEach(location => {
                     if(location.server.host == chosenHost.host){
@@ -598,6 +598,7 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
                         console.log("found id", connID);
                     }
                 });
+            }
         });
 
         

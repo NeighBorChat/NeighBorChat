@@ -6,7 +6,6 @@ let msgGetCallBackFnc = function(msg, isSender, pk){
         return c.PKs == pk
     })) {
         pushMsg(msg, isSender)
-
     } else {
         createNewChat(msg, isSender)
 
@@ -88,7 +87,7 @@ UiContacts.addEventListener("click", e => {
 })
 
 UIChatSendBtn.addEventListener("click", () => {
-    if(UIChatInput.length < 1) 
+    if(UIChatInput.value == '' || UIChatTop.dataset.pk == null) 
         return
 
     SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
@@ -97,7 +96,7 @@ UIChatSendBtn.addEventListener("click", () => {
 
 UIChatInput.addEventListener("keyup", e => {
     if (e.keyCode === 13) {
-        if(UIChatInput.length < 1) 
+        if(UIChatInput.value == '' || UIChatTop.dataset.pk == null) 
             return
 
         SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
