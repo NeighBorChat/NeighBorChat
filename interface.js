@@ -1,4 +1,5 @@
 import {PublicListDatabase, setCallBack, requestAddressBook, SendMsg, PUBLIC_KEY} from "./conection/magic.js"
+import {contentType, Msg} from './conection/database/MsgPks.js';
 
 let msgGetCallBackFnc = function(msg, isSender, pk){
     /*process received message, add to MyContacts arr*/
@@ -8,13 +9,12 @@ let msgGetCallBackFnc = function(msg, isSender, pk){
         pushMsg(msg, isSender)
     } else {
         createNewChat(msg, isSender)
-
     }
-
 };
 
-let sigUpCallBack = (name) => {
+let sigUpCallBack = (name, pk) => {
     UiUserName.innerHTML = name.substring(0,10)
+    UiUserName.dataset.userPK = pk
 }
 
 setCallBack(msgGetCallBackFnc,sigUpCallBack);
@@ -72,7 +72,10 @@ UiContacts.addEventListener("click", e => {
         })) {
             addMyContactsToUi()
         } else {
-            SendMsg(target.dataset.pk, `hello, i am ${UiUserName.innerHTML} your new connection`, true)
+            if(target.dataset.pk == UiUserName.dataset.userPK) 
+                selfSend('Start chatting with yourself here!!!')
+            else
+                SendMsg(target.dataset.pk, `hello, i am ${UiUserName.innerHTML} your new connection`, true)
         }
         loadMsg(target.dataset.pk)
 
@@ -87,20 +90,12 @@ UiContacts.addEventListener("click", e => {
 })
 
 UIChatSendBtn.addEventListener("click", () => {
-    if(UIChatInput.value == '' || UIChatTop.dataset.pk == null) 
-        return
-
-    SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
-    UIChatInput.value = ''
+    sendInput()
 })
 
 UIChatInput.addEventListener("keyup", e => {
     if (e.keyCode === 13) {
-        if(UIChatInput.value == '' || UIChatTop.dataset.pk == null) 
-            return
-
-        SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
-        UIChatInput.value = ''
+        sendInput()
     }
 })
 
@@ -111,13 +106,27 @@ UiSearch.addEventListener("focus", () => {
 UiBtnSearch.addEventListener("click", searchContacts)
 
 UiSearch.addEventListener("keyup", e => {
-    if (e.keyCode === 13) {
         searchContacts()
-    }
+    
 })
 
+function sendInput() {
+    if(UIChatInput.value == '' || UIChatTop.dataset.pk == null) 
+        return
+
+    if(UIChatTop.dataset.pk == UiUserName.dataset.userPK) 
+        selfSend(UIChatInput.value)
+    else
+        SendMsg(UIChatTop.dataset.pk, UIChatInput.value, true)
+    
+    UIChatInput.value = ''
+}
+
 function searchContacts() {
+    UiSearch.focus()
+
     if(UiSearch.value == '') {
+        addMyContactsToUi()
         return
     }
 
@@ -160,7 +169,7 @@ function pushMsg(msg, isSender = true) {
     let pkForChat = ''
     if(isSender) {
         pkForChat = msg.targetPublicKey
-        premsg.from = msg.PUBLIC_KEY
+        premsg.from = PUBLIC_KEY
     } else {
         pkForChat = msg.data.from
         premsg.from = msg.data.from
@@ -262,7 +271,7 @@ function loadMsg(pk) {
         if(chat.PKs == msg.from) {
             name = chat.Name
         } else {
-            name = 'Me'
+            name = UiUserName.innerHTML
         }
 
         output += 
@@ -297,4 +306,15 @@ function getInputModal() {
             return UiModalInput.value
         }
     })
+}
+
+function selfSend(msg) {
+    let newMsg = new Msg();
+    newMsg.data.type = contentType.MSG;
+    newMsg.data.content = msg;
+    newMsg.data.from = PUBLIC_KEY;
+    newMsg.data.to.push(PUBLIC_KEY);
+    newMsg.targetPublicKey = PUBLIC_KEY;
+
+    msgGetCallBackFnc(newMsg, true, PUBLIC_KEY)
 }

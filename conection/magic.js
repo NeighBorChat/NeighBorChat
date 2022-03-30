@@ -699,7 +699,7 @@ function hostID() {
 
 function SignUp() {
     let name = window.prompt("What is your name?")
-    sigUpCallBack(name);
+    sigUpCallBack(name, PUBLIC_KEY);
     // let image = window.prompt("What is your image address?")
     // PASSPHRASE = window.prompt("What is your password?")
     // let name = "K"
