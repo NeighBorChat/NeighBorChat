@@ -41,7 +41,7 @@ const SYS_ID = "thisAppIsSoooooGreat"
 
 const hosts = [{host:'peerjs-server.herokuapp.com', secure:true, port:443},
                {host:'localhost', path:'/myapp', port:9000}]
-const chosenHost = hosts[0];
+const chosenHost = hosts[1];
 
 export function clearDB(){
     db.remove(SYS_ID);
@@ -75,6 +75,15 @@ function loadDB(){
             holdingData = doc.holdingData;
             CreateKey();
             sigUpCallBack(MyPLD.HID.name, PUBLIC_KEY);
+
+            let loc = new Location()
+            loc.server = chosenHost;
+            loc.id = peer._id;
+            loc.online = true;
+
+            MyPLD.locations = [];
+            MyPLD.locations.push(loc);
+
         }).catch(function (err) {
             /* incase no DB preload */
             console.log(err);
@@ -112,6 +121,12 @@ let peer = null // Own peer object
 
 function upgradePLDB(pld2){
     console.log("updating DB", pld2);
+
+    // if(pld2.publicKey == PUBLIC_KEY){
+    //     console.log("update self ? no way");
+    //     return;
+    // }        
+
     const pld1 = PublicListDatabase.find(element => element.publicKey == pld2.publicKey)
     if(typeof(pld1) != 'undefined'){
         console.log("updating with new elm", pld2);
@@ -388,8 +403,8 @@ function connectToOther(){
                     conn.on('close', function () {
                         console.log("Connection closed");
                         //remove from conn, mark PL as offline 
-                        for(let j =0; j < conns.length; j++){
-                            if(conns[i].peer == conn.peer){
+                        for(let i =0; i < conns.length; i++){
+                            if(conns[i].connectionId == conn.connectionId){
                                 conns.splice(i,1);
                             }
                         }
@@ -561,8 +576,8 @@ function processConnection(host){
         conn.on('close', function() {
             if(TrustProcess == 4){
                 console.log(conn.peer, "offline")
-                for(let j =0; j < conns.length; j++){
-                    if(conns[i].peer == conn.peer){
+                for(let i =0; i < conns.length; i++){
+                    if(conns[i].connectionId == conn.connectionId){
                         conns.splice(i,1);
                     }
                 }
