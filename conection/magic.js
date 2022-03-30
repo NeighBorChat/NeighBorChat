@@ -50,17 +50,47 @@ export function clearDB(){
 }
 
 export function putDB(){
-    var doc = {
-        "_id": SYS_ID,
-        "PASSPHRASE": PASSPHRASE,
-        // "PRIVATE_KEY": PRIVATE_KEY,
-        // "PUBLIC_KEY": PUBLIC_KEY,
-        "BITS": BITS,
-        "MyPLD": MyPLD,
-        "PublicListDatabase": PublicListDatabase,
-        "holdingData": holdingData,
-      };
-      db.put(doc);
+    let data = JSON.stringify(PublicListDatabase)
+    db.get(SYS_ID).then(function(doc) {
+        return db.put({
+          _id: SYS_ID,
+          _rev: doc._rev,
+          "PASSPHRASE": PASSPHRASE,
+          // "PRIVATE_KEY": PRIVATE_KEY,
+          // "PUBLIC_KEY": PUBLIC_KEY,
+          "BITS": BITS,
+          "MyPLD": MyPLD,
+          "PublicListDatabase": data,
+          "holdingData": holdingData,
+        });
+      }).then(function(response) {
+        // handle response
+      }).catch(function (err) {
+          //if new msg  
+          var doc = {
+            "_id": SYS_ID,
+            "PASSPHRASE": PASSPHRASE,
+            // "PRIVATE_KEY": PRIVATE_KEY,
+            // "PUBLIC_KEY": PUBLIC_KEY,
+            "BITS": BITS,
+            "MyPLD": MyPLD,
+            "PublicListDatabase": data,
+            "holdingData": holdingData,
+          };
+          db.put(doc);
+      });
+
+    // var doc = {
+    //     "_id": SYS_ID,
+    //     "PASSPHRASE": PASSPHRASE,
+    //     // "PRIVATE_KEY": PRIVATE_KEY,
+    //     // "PUBLIC_KEY": PUBLIC_KEY,
+    //     "BITS": BITS,
+    //     "MyPLD": MyPLD,
+    //     "PublicListDatabase": JSON.stringify(PublicListDatabase),
+    //     "holdingData": holdingData,
+    //   };
+    //   db.put(doc);
 }
 
 function loadDB(){
@@ -71,7 +101,11 @@ function loadDB(){
             // PUBLIC_KEY = doc.PUBLIC_KEY;
             BITS = doc.BITS;
             MyPLD = doc.MyPLD;
-            PublicListDatabase = doc.PublicListDatabase;
+            let json = JSON.parse(doc.PublicListDatabase)
+            json.forEach(e => {
+                PublicListDatabase.push(e);
+            });
+            // PublicListDatabase = doc.PublicListDatabase;
             holdingData = doc.holdingData;
             CreateKey();
             sigUpCallBack(MyPLD.HID.name, PUBLIC_KEY);
@@ -106,7 +140,7 @@ export let PUBLIC_KEY = null
 let MyPLD;
 // let Name = null
 //Address Book 
-export var PublicListDatabase = [];
+export const PublicListDatabase = [];
 //HOLD DATA LIST
 let holdingData = [];
 
@@ -133,11 +167,13 @@ function upgradePLDB(pld2){
         //update the new input with new addr
         pld1.HID = pld2.HID;
         pld1.locations = pld2.locations;
+        putDB();
         return false;
     }
     else{
         console.log("push new elm into DB", pld2);
         PublicListDatabase.push(pld2);
+        putDB();
         return true;
     }
 }

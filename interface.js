@@ -3,6 +3,11 @@ import {contentType, Msg} from './conection/database/MsgPks.js';
 
 const CHAT_DB_ID = "thisAppIsReallyGreat" 
 
+//store every msg
+const MyContacts = []
+let IsSearching = false
+
+
 var db = new PouchDB('chats');
 db.info().then(function (info) {
     console.log(JSON.stringify(info)); //✔️
@@ -13,25 +18,49 @@ function clearChatDB(){
     db.remove(CHAT_DB_ID);
     db.destroy('chats');
     db = new PouchDB('chats');
-
 }
 
 function putChatDB(){
+
+    db.get(CHAT_DB_ID).then(function(doc) {
+        let data = JSON.stringify(MyContacts);
+        console.log("update with new vrs");
+        return db.put({
+          _id: CHAT_DB_ID,
+          _rev: doc._rev,
+          "MyContacts": data
+        });
+      }).then(function(response) {
+        // handle response
+      }).catch(function (err) {
+        let data = JSON.stringify(MyContacts);
+        var doc = {
+            "_id": CHAT_DB_ID,
+            "MyContacts": data
+        };
+        db.put(doc);
+      });
+    
+    let data = JSON.stringify(MyContacts);
     var doc = {
         "_id": CHAT_DB_ID,
-        "MyContacts": MyContacts
-      };
-      db.put(doc);
+        "MyContacts": data
+    };
+    db.put(doc);
 }
 
 function loadDB(){
     db.get(CHAT_DB_ID).then(function (doc) {
             console.log("load data", doc);
-            MyContacts = doc.MyContacts;
+
+            let json = JSON.parse(doc.MyContacts)
+            json.forEach(e => {
+                MyContacts.push(e)
+            });
+             
             /*
                 preload MSG here
             */
-
             MyContacts.forEach(contact => {
                 loadMsg(contact.PKs);
             });
@@ -48,6 +77,7 @@ function loadDB(){
 loadDB();
 
 
+/*
 window.addEventListener('beforeunload', function (e) {
     //let hope this work
     e.preventDefault();
@@ -55,6 +85,9 @@ window.addEventListener('beforeunload', function (e) {
     putChatDB();
     window.close();
 });
+*/
+
+
 
 let msgGetCallBackFnc = function(msg, isSender, pk){
     /*process received message, add to MyContacts arr*/
@@ -65,6 +98,7 @@ let msgGetCallBackFnc = function(msg, isSender, pk){
     } else {
         createNewChat(msg, isSender)
     }
+    putChatDB();
 };
 
 let sigUpCallBack = (name, pk) => {
@@ -91,9 +125,6 @@ class Chat {
     }
 }
 
-//store every msg
-let MyContacts = []
-let IsSearching = false
 
 //elements selector
 const UiContacts = document.querySelector('#contacts-list')
