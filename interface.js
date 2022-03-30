@@ -43,7 +43,7 @@ function loadDB(){
         })
 }
 
-clearChatDB();
+// clearChatDB();
 
 loadDB();
 

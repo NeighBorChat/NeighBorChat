@@ -52,7 +52,9 @@ export function clearDB(){
 export function putDB(){
     var doc = {
         "_id": SYS_ID,
-        "PASSPHRASE": PASSPHRASE,
+        // "PASSPHRASE": PASSPHRASE,
+        "PRIVATE_KEY": PRIVATE_KEY,
+        "PUBLIC_KEY": PUBLIC_KEY,
         "BITS": BITS,
         "MyPLD": MyPLD,
         "PublicListDatabase": PublicListDatabase,
@@ -64,7 +66,9 @@ export function putDB(){
 function loadDB(){
     db.get(SYS_ID).then(function (doc) {
             console.log("load data", doc);
-            PASSPHRASE = doc.PASSPHRASE;
+            // PASSPHRASE = doc.PASSPHRASE;
+            PRIVATE_KEY = doc.PUBLIC_KEY;
+            PUBLIC_KEY = doc.PUBLIC_KEY;
             BITS = doc.BITS;
             MyPLD = doc.MyPLD;
             PublicListDatabase = doc.PublicListDatabase;
@@ -74,9 +78,9 @@ function loadDB(){
         }).catch(function (err) {
             /* incase no DB preload */
             console.log(err);
+            CreateKey();
             MyPLD = SignUp();
             putDB();
-            CreateKey();
         })
 }
 /******************************** DATABASE ********************************************/
@@ -93,7 +97,7 @@ export let PUBLIC_KEY = null
 let MyPLD;
 // let Name = null
 //Address Book 
-export let PublicListDatabase = [];
+export var PublicListDatabase = [];
 //HOLD DATA LIST
 let holdingData = [];
 
@@ -107,14 +111,17 @@ const peers = [];
 let peer = null // Own peer object
 
 function upgradePLDB(pld2){
+    console.log("updating DB", pld2);
     const pld1 = PublicListDatabase.find(element => element.publicKey == pld2.publicKey)
     if(typeof(pld1) != 'undefined'){
+        console.log("updating with new elm", pld2);
         //update the new input with new addr
         pld1.HID = pld2.HID;
         pld1.locations = pld2.locations;
         return false;
     }
     else{
+        console.log("push new elm into DB", pld2);
         PublicListDatabase.push(pld2);
         return true;
     }
@@ -187,21 +194,19 @@ function processMessenger(conn, data){
 
 export function Initialize(){
 
-    /* TEMPORARY CREATE AN ACCOUNT */
-    // TODO: LOAD Key and data form DB
-    loadDB();
-    //Get key
 
+    
     /* chose one alive server */
-
+    
     console.log("created key");
-
+    
     /* get a random Addr to start LISTENING ✔️ */
-
+    
     peer = new Peer(chosenHost);
     
     //✔️
     peer.on('open', function(id) {
+
 
         console.log('My peer ID is: ' + id);
         
@@ -392,7 +397,7 @@ function connectToOther(){
 
 
                 });
-
+                
                 subPeer.on('error', function(err) { 
                     //connection to server dead
                     console.log(err);
@@ -405,11 +410,13 @@ function connectToOther(){
 
 function processConnection(host){
 
-    /* add or MODIFY self into list */
-    //TODO: ADD DB into sys
+    /* login when connected */
+    loadDB();
     
+    /* TODO: convert to promise */
+    setTimeout(function(){
     // PublicListDatabase.push(MyPLD);
-    upgradePLDB(MyPLD)
+    upgradePLDB(MyPLD);
 
     //temporary add host ID, but not get PK of host yet
     if(!host){
@@ -573,7 +580,6 @@ function processConnection(host){
     //return peer.id;
     //update connection into PL
 
-    setTimeout(function(){
         connectToOther();
     },1000);
 }
