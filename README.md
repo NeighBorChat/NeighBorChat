@@ -10,8 +10,12 @@ NOTE: still in the process of development ...
 1. The app is deploy at [HERE](https://neighborchat.github.io/NeighBorChat/)  
 2. Be patient, our app is slow 😅  
 3. When open, remember to set your name on the prompt (we not have time to do it properly) or the app will be broke...  
-4. Use your friend name and put in the Search bar on the top-left corner to find your friends, click the searched results to start chat.
-Note: you need to open 2 browser to test chat your self, or ask your friends to tryout our BEST PRIVACY CHAT app :) 
+4. Use your friend name and put in the Search bar on the top-left corner to find your friends, click the searched results to start chat  
+Note: you need to open 2 browser to test chat your self, or ask your friends to tryout our BEST PRIVACY CHAT app :)  
+5. If every thing go wrong, just press the X button and said YOLO ... from everyone  
+## Limitation
+As it, like not supported groupt chat/video, voice chat ... only text app  
+Oh you can chat to your self too  
 ## Tech used
 - [cryptico](https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/cryptico.min.js)
 - [pouchDB](https://cdn.jsdelivr.net/npm/pouchdb@7.2.1/dist/pouchdb.min.js)
