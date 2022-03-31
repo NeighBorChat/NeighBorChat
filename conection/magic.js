@@ -90,7 +90,7 @@ export function putDB(){
     //   db.put(doc);
 }
 
-function loadDB(){
+function loadDB(callback){
     db.get(SYS_ID).then(function (doc) {
             console.log("load data", doc);
             PASSPHRASE = doc.PASSPHRASE;
@@ -107,13 +107,35 @@ function loadDB(){
             CreateKey();
             sigUpCallBack(MyPLD.HID.name, PUBLIC_KEY);
 
-            let loc = new Location()
-            loc.server = chosenHost;
-            loc.id = peer._id;
-            loc.online = true;
 
-            MyPLD.locations = [];
-            MyPLD.locations.push(loc);
+            let connID = getCorrectLocationID(MyPLD);
+            
+            /* connect to self in DB  */
+            var selfConn = peer.connect(connID);
+
+            /* connect success => a tab already open */
+            selfConn.on('open', function(){
+                peer.destroy();
+                alert("Look like you already open the chat APP on the same browser\
+                    and the DB is Shared and we have Tooooo litte time to fix this so \
+                    ... please open in Privacy mode or other browser to create new Acc");
+                window.close();
+            });
+
+            /* ok */
+            peer.on('error', function(err) { 
+                selfConn.close();
+                //✔️
+                let loc = new Location()
+                loc.server = chosenHost;
+                loc.id = peer._id;
+                loc.online = true;
+
+                
+                MyPLD.locations = [];
+                MyPLD.locations.push(loc);
+                callback();
+            });
 
         }).catch(function (err) {
             /* incase no DB preload */
@@ -121,6 +143,7 @@ function loadDB(){
             CreateKey();
             MyPLD = SignUp();
             putDB();
+            callback();
         })
 }
 /******************************** DATABASE ********************************************/
@@ -239,10 +262,18 @@ function processMessenger(conn, data){
         holdingData.push(msg);
     }
 }
-
+function getCorrectLocationID(pld){
+    let tag;
+    pld.locations.forEach(loc => {
+        console.log(loc.server.host, chosenHost.host);
+        if(loc.server.host == chosenHost.host){
+            tag = loc.id;
+            // return loc.id; //ficl nots wk
+        }
+    });
+    return tag;
+}
 export function Initialize(){
-
-
     
     /* chose one alive server */
     
@@ -251,8 +282,7 @@ export function Initialize(){
     /* get a random Addr to start LISTENING ✔️ */
     
     peer = new Peer(chosenHost);
-    
-    //✔️
+
     peer.on('open', function(id) {
 
 
@@ -262,6 +292,7 @@ export function Initialize(){
         var host_conn = peer.connect(HOST_ID, {
             reliable: true
         });
+
         console.log(host_conn);
 
         host_conn.on('open', function(){
@@ -297,7 +328,6 @@ export function Initialize(){
         });
 
     });
-            
     
 }
 
@@ -459,10 +489,10 @@ function connectToOther(){
 function processConnection(host){
 
     /* login when connected */
-    loadDB();
+    loadDB(()=>
     
     /* TODO: convert to promise */
-    setTimeout(function(){
+    {
     // PublicListDatabase.push(MyPLD);
     upgradePLDB(MyPLD);
 
@@ -471,7 +501,7 @@ function processConnection(host){
         // PublicListDatabase.push();
         upgradePLDB(hostID())
     }
-
+    
     /* define EVERY TIME receive msg, act as a host ✔️ */
     peer.on('connection', function(conn) {
         /* 
@@ -628,8 +658,8 @@ function processConnection(host){
     //return peer.id;
     //update connection into PL
 
-        connectToOther();
-    },1000);
+    connectToOther();
+    });
 }
 
 //ask everyone to give new addr
