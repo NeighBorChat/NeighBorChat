@@ -13,7 +13,7 @@ NOTE: still in the process of development ...
 4. Use your friend name and put in the Search bar on the top-left corner to find your friends, click the searched results to start chat  
 Note: you need to open 2 browser to test chat your self, or ask your friends to tryout our BEST PRIVACY CHAT app :)  
 5. If every thing go wrong, just press the X button and said YOLO ... from everyone  
-##Limitation
+## Limitation
 As it, like not supported groupt chat/video, voice chat ... only text app  
 Oh you can chat to your self too  
 ## Tech used
