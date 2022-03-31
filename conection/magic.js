@@ -52,32 +52,29 @@ export function clearDB(){
 export function putDB(){
     let data = JSON.stringify(PublicListDatabase)
     db.get(SYS_ID).then(function(doc) {
-        return db.put({
-          _id: SYS_ID,
-          _rev: doc._rev,
-          "PASSPHRASE": PASSPHRASE,
-          // "PRIVATE_KEY": PRIVATE_KEY,
-          // "PUBLIC_KEY": PUBLIC_KEY,
-          "BITS": BITS,
-          "MyPLD": MyPLD,
-          "PublicListDatabase": data,
-          "holdingData": holdingData,
-        });
-      }).then(function(response) {
-        // handle response
-      }).catch(function (err) {
-          //if new msg  
-          var doc = {
-            "_id": SYS_ID,
-            "PASSPHRASE": PASSPHRASE,
-            // "PRIVATE_KEY": PRIVATE_KEY,
-            // "PUBLIC_KEY": PUBLIC_KEY,
-            "BITS": BITS,
-            "MyPLD": MyPLD,
-            "PublicListDatabase": data,
-            "holdingData": holdingData,
-          };
-          db.put(doc);
+        doc.PASSPHRASE = PASSPHRASE;
+        doc.BITS = BITS;
+        doc.MyPLD = MyPLD;
+        doc.PublicListDatabase = data;
+        doc.holdingData = holdingData;
+        return db.put(doc);
+      }).catch(function (e) {
+        if (e.name === 'conflict') {
+            console.log('yeah, the DB get confliccccct as usual ');
+        }else{
+            //if new msg  
+            var doc = {
+                    "_id": SYS_ID,
+                "PASSPHRASE": PASSPHRASE,
+                // "PRIVATE_KEY": PRIVATE_KEY,
+                // "PUBLIC_KEY": PUBLIC_KEY,
+                "BITS": BITS,
+                "MyPLD": MyPLD,
+                "PublicListDatabase": data,
+                "holdingData": holdingData,
+            };
+            db.put(doc);
+        }
       });
 
     // var doc = {

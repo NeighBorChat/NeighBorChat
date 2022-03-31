@@ -25,28 +25,22 @@ function putChatDB(){
     db.get(CHAT_DB_ID).then(function(doc) {
         let data = JSON.stringify(MyContacts);
         console.log("update with new vrs");
-        return db.put({
-          _id: CHAT_DB_ID,
-          _rev: doc._rev,
-          "MyContacts": data
-        });
-      }).then(function(response) {
-        // handle response
-      }).catch(function (err) {
-        let data = JSON.stringify(MyContacts);
-        var doc = {
-            "_id": CHAT_DB_ID,
-            "MyContacts": data
-        };
-        db.put(doc);
+        doc.MyContacts = data;
+        return db.put(doc);
+      }).catch(function (e) {
+        if (e.name === 'conflict') {
+            // conflict!
+            console.log('yeah, the DB get confliccccct as usual ');
+        } else {
+            console.log(e);
+            let data = JSON.stringify(MyContacts);
+            var doc = {
+                "_id": CHAT_DB_ID,
+                "MyContacts": data
+            };
+            db.put(doc);
+        }
       });
-    
-    let data = JSON.stringify(MyContacts);
-    var doc = {
-        "_id": CHAT_DB_ID,
-        "MyContacts": data
-    };
-    db.put(doc);
 }
 
 function loadDB(){
@@ -333,7 +327,7 @@ function addMyContactsToUi() {
         `<div class="list-group-item py-1 text-dark ${active}" aria-current="true" data-pk="${c.PKs}">
             <div class="d-flex w-100 align-items-center">
             <div class="mr-1 mr-md-4">
-                <img src="" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
+                <img src="/images/user.png" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
             </div>
             <div>
                 <strong class="mb-1 mb-md-0 d-block">${c.Name}</strong>
@@ -372,7 +366,7 @@ function loadMsg(pk) {
             <div class="d-flex w-100 justify-content-between">
                 <div class="d-flex w-100">
                     <div class="mr-1 mr-md-4">
-                        <img src="" alt="" style="width: 30px; height: 30px; border-radius: 50%;">  
+                        <img src="/images/user.png" alt="" style="width: 30px; height: 30px; border-radius: 50%;">  
                     </div>
                     <div class="msg-content">
                         <strong class="mb-0 d-block">${name}</strong>
