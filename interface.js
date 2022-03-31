@@ -235,7 +235,7 @@ function searchContacts() {
         <div class="list-group-item py-1 text-dark" aria-current="true" data-pk="${db.publicKey}">
             <div class="d-flex w-100 align-items-center">
                 <div class="mr-1 mr-md-4">
-                    <img src="" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
+                    <img src="/images/user.png" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
                 </div>
                 <div>
                     <strong class="mb-1 mb-md-0 d-block">${db.HID.name}</strong>
