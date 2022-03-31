@@ -258,6 +258,11 @@ function pushMsg(msg, isSender = true) {
     premsg.content = msg.data.content
     premsg.time = msg.data.sendTime
 
+    if( typeof(msg.data.content) == 'undefined'){
+        console.log("unexpected msg");
+        return;
+    }
+
     let pkForChat = ''
     if(isSender) {
         pkForChat = msg.targetPublicKey
@@ -269,7 +274,18 @@ function pushMsg(msg, isSender = true) {
 
     MyContacts.forEach(c => {
         if(c.PKs == pkForChat) {
-            c.Msgs.push(premsg)
+            /* check if MSGS already exists (incase) */
+            let add = true;
+
+            c.Msgs.forEach(msg => {
+                if(msg == premsg){
+                    add = false;
+                }
+            });
+            if(add)
+                c.Msgs.push(premsg)
+            else
+                console.log("msg existed !!!");
         }
     })
 

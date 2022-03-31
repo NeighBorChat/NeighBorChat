@@ -115,11 +115,11 @@ function loadDB(callback){
 
             /* connect success => a tab already open */
             selfConn.on('open', function(){
-                peer.destroy();
+                // peer.destroy();
                 alert("Look like you already open the chat APP on the same browser\
                     and the DB is Shared and we have Tooooo litte time to fix this so \
                     ... please open in Privacy mode or other browser to create new Acc");
-                window.close();
+                // window.close();
             });
 
             /* ok */
@@ -298,10 +298,21 @@ export function Initialize(){
 
         console.log('My peer ID is: ' + id);
         
-        /* ping if there is any host ✔️ */
-        var host_conn = peer.connect(HOST_ID, {
-            reliable: true
+        /* DAMN: if conn not work -> peer get error instead*/
+        peer.on('error', function(err) { 
+            console.log(err.type)
+            if(err.type == 'peer-unavailable'){
+                /* server not exist -> set self as host */
+                peer = new Peer(HOST_ID, chosenHost);
+                peer.on('open', function(id) {
+                    console.log('now Im the server: ' + id);
+                    processConnection(true);
+                });
+            }
         });
+        
+        /* ping if there is any host ✔️ */
+        let host_conn = peer.connect(HOST_ID);
 
         console.log(host_conn);
 
@@ -324,18 +335,6 @@ export function Initialize(){
 
         // TODO: recover last ID to reduce frequency change AddressBook  => need DB first
 
-        /* DAMN: if conn not work -> peer get error instead*/
-        peer.on('error', function(err) { 
-            console.log(err.type)
-            if(err.type == 'peer-unavailable'){
-                /* server not exist -> set self as host */
-                peer = new Peer(HOST_ID, chosenHost);
-                peer.on('open', function(id) {
-                    console.log('now Im the server: ' + id);
-                    processConnection(true);
-                });
-            }
-        });
 
     });
     
@@ -599,7 +598,7 @@ function processConnection(host){
                     TrustProcess = 4;
                     
                     /* check if this addr is for sending  */
-                    let Reconnect = true;
+                    // let Reconnect = true;
                     // publicListData.locations.forEach(location => {
                     //     if(location.server.host == chosenHost.host){
                     //         if(location.id == conn.peer)
@@ -607,7 +606,7 @@ function processConnection(host){
                     //             //TODO: THIS NEVER WORK
                     //             Reconnect = false;
                     //             /* add conn to conns list  */
-                    //             // conns.push(conn);
+                    //             conns.push(conn);
                     //             console.log("connected to",conn.peer)
                                 
                     //         };
@@ -623,6 +622,7 @@ function processConnection(host){
                     /*  check send all DATA from HoldMsg */
                     for(let i = 0; i < holdingData.length; i++){
                         if(holdingData[i].targetPublicKey == publicListData.publicKey){
+                            console.log("sending back data ... ");
                             conn.send(holdingData[i]);
                             holdingData.splice(i,1);
                         }
@@ -707,6 +707,7 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
         return
     }
 
+    
     /* TODO: loop through Keys and send msg */
     let newMsg = new Msg();
     newMsg.data.type = contentType.MSG;
@@ -715,8 +716,9 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
     newMsg.data.to.push(TargetPublicKey);
     newMsg.targetPublicKey = TargetPublicKey;
     
+    msgGetCallBackFnc(newMsg, true, TargetPublicKey);
 
-    if(direct){
+    // if(direct){
         /*  loop though the PLD */
         let connID;
         PublicListDatabase.forEach(pld => {
@@ -749,7 +751,6 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
                 // } else {
                 //     createNewChat(newMsg, true)
                 // }
-                msgGetCallBackFnc(newMsg, true, TargetPublicKey);
 
                 newMsg.encrypt(newMsg.targetPublicKey);
 
@@ -757,25 +758,36 @@ export function SendMsg(TargetPublicKey,msg,direct = true){
                 console.log(connID)
                 console.log("msg sended", newMsg);
                 fixUnexpectedErr = false;
-                return true;
+                // return true; // not ươpr
             }
         });
-        if(fixUnexpectedErr){
-            console.log(conns,connID);
-            console.log("fail to send msg, probably no direct connect", newMsg);
-        }
+    if(fixUnexpectedErr){
+        console.log(conns,connID);
+        console.log("fail to send msg, probably no direct connect", newMsg);
+    }else{
+        
+        return true;
+    }
         
 
         
         
-    }
-    else {
+    // }
+    // else {
         // TODO: Reconnect again 
-        return false;
-    }
+        
+    // }
+    newMsg.encrypt(newMsg.targetPublicKey);
+    /* send to neighbors  */
+    //send to everyone =))))) 
+    conns.forEach(conn => {
+            conn.send(newMsg);
+            console.log("msg sended", conn.peer);
+    });
 
-    /* TODO: send to neighbors  */
+    holdingData.push(newMsg);
 
+    return false;
 }
 
 function CreateKey() {
