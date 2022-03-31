@@ -15,7 +15,7 @@ Note: you need to open 2 browser to test chat your self, or ask your friends to 
 5. If every thing go wrong, just press the X button and said YOLO ... from everyone  
 ## Limitation
 As it, like not supported groupt chat/video, voice chat ... only text app  
-Oh you can chat to your self too  
+Oh you can chat to yourself too  
 ## Tech used
 - [cryptico](https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/cryptico.min.js)
 - [pouchDB](https://cdn.jsdelivr.net/npm/pouchdb@7.2.1/dist/pouchdb.min.js)
