@@ -331,7 +331,7 @@ function addMyContactsToUi() {
             </div>
             <div>
                 <strong class="mb-1 mb-md-0 d-block">${c.Name}</strong>
-                <small>Lorem ipsum, dolor sit amet consectetur</small>
+                <small>${c.Msgs[c.Msgs.length - 1].content.substring(0,35)}...</small>
             </div>
             </div>
         </div>`
@@ -383,6 +383,14 @@ function loadMsg(pk) {
     UIChatTop.querySelector('p').innerHTML = chat.Name
     UIChatTop.dataset.pk = pk
     UiMsgList.innerHTML = output
+
+    let contacts = UiContacts.querySelectorAll('.list-group-item')
+    contacts.forEach((c) => {
+        if(c.dataset.pk == chat.PKs) {
+            const small = c.querySelector('small')
+            small.textContent = `${chat.Msgs[chat.Msgs.length - 1].content.substring(0,35)}...`
+        } 
+    })
 }
 
 function getInputModal() {
