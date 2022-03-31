@@ -97,6 +97,9 @@ let msgGetCallBackFnc = function(msg, isSender, pk){
 
 let sigUpCallBack = (name, pk) => {
     UiUserName.innerHTML = name.substring(0,10)
+    UiConnected.classList.remove("bg-white");
+    UiConnected.classList.add("alert-success");
+    // $('#AlertBox').fadeIn();
     UiUserName.dataset.userPK = pk
 }
 
@@ -131,6 +134,7 @@ const UiBtnSearch = document.querySelector('.btn-search')
 const UiModalInput = document.querySelector('#signInInput')
 const UiModalBtn = document.querySelector('.sign-in-btn')
 const UiUserName = document.querySelector('.user-name')
+const UiConnected = document.querySelector('#nameBar')
 const UiBtnClearDB = document.querySelector('.btn-cleardb') 
 
 

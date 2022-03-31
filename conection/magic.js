@@ -141,9 +141,19 @@ function loadDB(callback){
             /* incase no DB preload */
             console.log(err);
             CreateKey();
-            MyPLD = SignUp();
-            putDB();
-            callback();
+
+            $('#exampleModal').modal(
+                {backdrop: 'static', keyboard: false}
+            );
+        
+            $('#exampleModal').on('click','#paramsSave', function (e) {
+                MyPLD = SignUp($('#yourname').val());
+                putDB();
+                callback();
+                $('#exampleModal').modal('hide')
+            });
+
+
         })
 }
 /******************************** DATABASE ********************************************/
@@ -817,8 +827,9 @@ function hostID() {
     return pld
 }
 
-function SignUp() {
-    let name = window.prompt("What is your name?")
+function SignUp(_name) {
+    
+    let name = _name;//window.prompt("What is your name?")
     sigUpCallBack(name, PUBLIC_KEY);
     // let image = window.prompt("What is your image address?")
     // PASSPHRASE = window.prompt("What is your password?")

@@ -42,16 +42,17 @@
               <i class="fa fa-search"></i>
             </button>
           </div>
-          <div class="contacts-bot border d-flex bg-white px-5 justify-content-around">
-            <div class="d-flex align-items-center px-3">
-              <p class="user-name mb-0"></p>
-            </div>
+          <div id = "nameBar" class="contacts-bot border d-flex bg-white px-2 justify-content-between">
             <button class="btn text-info btn-cleardb">
               <i class="fa-solid fa-circle-xmark"></i>
             </button>
+            <div class="d-flex align-items-center px-3">
+              <p class="user-name mb-0"></p>
+            </div>
             <!-- <button class="btn text-info">
               <i class="fa-solid fa-gear"></i>            
             </button> -->
+            <!-- Button trigger modal -->
           </div>
           <div id="contacts-list" class="list-group border-bottom">
             
@@ -81,6 +82,32 @@
           </div>
           <div id="msg-list" class="list-group">
             
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Signup</h5>
+            <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button> -->
+          </div>
+          <div class="modal-body">
+            <h3>Your unchangeable avatar</h3>
+            <img src="./images/user.png" alt="" style="width: 30px; height: 30px; border-radius: 50%;">  
+            <div class="form-group">
+              <label for="name" class="col-form-label">Your Name</label>
+              <input type="text" class="form-control" id="yourname">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <!-- <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button> -->
+            <button id="paramsSave" type="button" class="btn btn-primary">Save changes</button>
           </div>
         </div>
       </div>
