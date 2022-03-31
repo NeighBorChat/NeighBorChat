@@ -235,7 +235,7 @@ function searchContacts() {
         <div class="list-group-item py-1 text-dark" aria-current="true" data-pk="${db.publicKey}">
             <div class="d-flex w-100 align-items-center">
                 <div class="mr-1 mr-md-4">
-                    <img src="/images/user.png" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
+                    <img src="./images/user.png" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
                 </div>
                 <div>
                     <strong class="mb-1 mb-md-0 d-block">${db.HID.name}</strong>
@@ -327,7 +327,7 @@ function addMyContactsToUi() {
         `<div class="list-group-item py-1 text-dark ${active}" aria-current="true" data-pk="${c.PKs}">
             <div class="d-flex w-100 align-items-center">
             <div class="mr-1 mr-md-4">
-                <img src="/images/user.png" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
+                <img src="./images/user.png" alt="" style="width: 50px; height: 50px; border-radius: 50%;">  
             </div>
             <div>
                 <strong class="mb-1 mb-md-0 d-block">${c.Name}</strong>
@@ -366,7 +366,7 @@ function loadMsg(pk) {
             <div class="d-flex w-100 justify-content-between">
                 <div class="d-flex w-100">
                     <div class="mr-1 mr-md-4">
-                        <img src="/images/user.png" alt="" style="width: 30px; height: 30px; border-radius: 50%;">  
+                        <img src="./images/user.png" alt="" style="width: 30px; height: 30px; border-radius: 50%;">  
                     </div>
                     <div class="msg-content">
                         <strong class="mb-0 d-block">${name}</strong>
