@@ -386,7 +386,7 @@ function loadMsg(pk) {
 
     let contacts = UiContacts.querySelectorAll('.list-group-item')
     contacts.forEach((c) => {
-        if(c.dataset.pk == chat.PKs) {
+        if(c.dataset.pk == pk) {
             const small = c.querySelector('small')
             small.innerText = `${chat.Msgs[chat.Msgs.length - 1].content.substring(0,35)}...`
         } 
@@ -415,7 +415,7 @@ function selfSend(msg) {
 
     let contacts = UiContacts.querySelectorAll('.list-group-item')
     contacts.forEach((c) => {
-        if(c.dataset.pk == chat.PKs) {
+        if(c.dataset.pk == PUBLIC_KEY) {
             const small = c.querySelector('small')
             small.textContent = `${chat.Msgs[chat.Msgs.length - 1].content.substring(0,35)}...`
         } 
